@@ -1,0 +1,31 @@
+{
+  "onboarding_completed": true,
+  "name": "Diego",
+  "email": "rodriguezpabondiego@gmail.com",
+
+  "investments": {
+    "broker": "Balanz y Cocos",
+    "risk_profile": "Moderado-agresivo / Agresivo",
+    "investment_horizon": "Corto, mediano y largo plazo (multi-estrategia)",
+    "markets_of_interest": ["CEDEARs", "Tech", "ETFs", "Large caps globales", "S&P 500", "NASDAQ"]
+  },
+
+  "reporting": {
+    "daily_report_time": "08:00",
+    "report_frequency": "daily",
+    "send_by_email": false,
+    "email_to": "rodriguezpabondiego@gmail.com"
+  },
+
+  "preferences": {
+    "language": "es",
+    "response_style": "directo y profesional",
+    "chart_default_period": "6mo",
+    "currency": "USD"
+  },
+
+  "watchlist_mode": "dynamic",
+  "watchlist_sources": ["JPMorgan", "Charles Schwab", "Reuters", "Bloomberg", "TradingView", "analistas top"],
+
+  "notes": "Portfolio 100% CEDEARs operados en Balanz y Cocos. Watchlist dinámico basado en escáner diario de fuentes institucionales."
+}

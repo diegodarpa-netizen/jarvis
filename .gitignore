@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+
+# Reportes y charts generados (locales)
+Jarvis/jarvis/reports/
+Jarvis/jarvis/charts/
+jarvis/reports/
+jarvis/charts/

@@ -1,0 +1,116 @@
+{
+  "last_updated": "29/05/2026",
+  "currency": "USD",
+  "asset_type": "CEDEARs",
+  "notes": "Precios promedio en USD por unidad de CEDEAR, calculados sobre costo total en USD (u$s 34.197) proporcionalmente al costo en ARS por posición.",
+  "positions": [
+    {
+      "ticker": "AMZN",
+      "name": "Amazon.com Inc.",
+      "quantity": 665,
+      "avg_buy_price": 1.58,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "BRKB",
+      "name": "Berkshire Hathaway Inc.",
+      "quantity": 31,
+      "avg_buy_price": 19.55,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "GLD",
+      "name": "ETF SPDR Gold Trust",
+      "quantity": 245,
+      "avg_buy_price": 9.32,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc. (Google)",
+      "quantity": 747,
+      "avg_buy_price": 2.48,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "LLY",
+      "name": "Eli Lilly and Company",
+      "quantity": 60,
+      "avg_buy_price": 14.47,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "MELI",
+      "name": "MercadoLibre Inc.",
+      "quantity": 253,
+      "avg_buy_price": 15.65,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "META",
+      "name": "Meta Platforms Inc.",
+      "quantity": 195,
+      "avg_buy_price": 27.95,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft Corporation",
+      "quantity": 277,
+      "avg_buy_price": 14.51,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "NU",
+      "name": "Nu Holdings Ltd.",
+      "quantity": 540,
+      "avg_buy_price": 7.39,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA Corporation",
+      "quantity": 520,
+      "avg_buy_price": 4.30,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "PLTR",
+      "name": "Palantir Technologies Inc.",
+      "quantity": 41,
+      "avg_buy_price": 50.32,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    },
+    {
+      "ticker": "SPY",
+      "name": "ETF SPDR S&P 500",
+      "quantity": 182,
+      "avg_buy_price": 31.96,
+      "type": "cedear",
+      "buy_date": "",
+      "notes": ""
+    }
+  ]
+}

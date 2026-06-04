@@ -1,0 +1,35 @@
+{
+  "clinic": {
+    "location": "Buenos Aires, Argentina",
+    "country": "AR",
+    "language": "es",
+    "currency": "USD",
+    "procedures": ["rinoplastia", "liposuccion", "lipoescultura", "mamoplastia", "bichectomia", "facial"]
+  },
+  "meta_ads": {
+    "monthly_budget_usd": 1000,
+    "primary_platform": "Instagram",
+    "secondary_platform": "Facebook",
+    "target_age_range": [22, 45],
+    "target_gender": "female_primary",
+    "geo_target": ["Buenos Aires", "GBA", "CABA"]
+  },
+  "competitors_keywords": [
+    "cirugia plastica buenos aires",
+    "rinoplastia buenos aires",
+    "liposuccion buenos aires",
+    "mamoplastia buenos aires",
+    "cirujano plastico argentina",
+    "cirugia estetica argentina"
+  ],
+  "tracking": {
+    "google_trends_keywords": [
+      "rinoplastia", "liposuccion", "mamoplastia", "cirugia plastica",
+      "bichectomia", "lipoescultura", "aumento de mamas"
+    ],
+    "viral_hashtags": [
+      "#rinoplastia", "#liposuccion", "#mamoplastia", "#cirugiaPlastica",
+      "#CirugiaEstetica", "#BuenosAires", "#TransformacionFisica"
+    ]
+  }
+}

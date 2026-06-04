@@ -1,0 +1,32 @@
+{
+  "_instrucciones": "Agregá o quitá tickers de cada sector según tus intereses. Jarvis usa este archivo para los escaneos de oportunidades.",
+  "default_scan": "tech",
+  "sectors": {
+    "tech": {
+      "label": "Tecnología",
+      "tickers": ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "AMD", "TSLA", "CRM", "ADBE", "ORCL", "NET", "PLTR", "SNOW", "DDOG", "SHOP"]
+    },
+    "finance": {
+      "label": "Finanzas",
+      "tickers": ["JPM", "BAC", "GS", "MS", "V", "MA", "AXP", "BRK-B", "C", "WFC", "BLK", "SCHW"]
+    },
+    "etfs": {
+      "label": "ETFs",
+      "tickers": ["SPY", "QQQ", "VGT", "XLK", "VTI", "VOO", "IWM", "GLD", "TLT", "ARKK"]
+    },
+    "latam": {
+      "label": "Latam",
+      "tickers": ["MELI", "NU", "GLOB", "DESP", "YPF", "PBR", "ITUB"]
+    },
+    "custom": {
+      "label": "Seguimiento personal",
+      "tickers": []
+    },
+    "dynamic_scan": {
+      "label": "Escáner dinámico",
+      "mode": "dynamic",
+      "sources": ["JPMorgan", "Charles Schwab", "Reuters", "Bloomberg", "TradingView", "analistas top"],
+      "tickers": []
+    }
+  }
+}
