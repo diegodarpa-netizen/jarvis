@@ -1,0 +1,2 @@
+- [Perfil de usuario](user_profile.md) — Diego, inversor argentino, CEDEARs en Balanz/Cocos, perfil agresivo, watchlist dinámico
+- [Agente Marketing](project_marketing.md) — Clínica cirugía plástica Buenos Aires, Meta Ads $500-2000/mes, módulo en jarvis/marketing/
