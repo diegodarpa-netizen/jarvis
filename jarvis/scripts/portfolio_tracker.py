@@ -20,11 +20,7 @@ except ImportError as e:
 
 # ── Rutas ────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-POSITIONS_FILE = os.path.join(BASE_DIR, "Jarvis\\jarvis\\portfolio\\active_positions.json")
-
-# Si el path con backslash no existe, intentar path normal (en caso de migración futura)
-if not os.path.exists(POSITIONS_FILE):
-    POSITIONS_FILE = os.path.join(BASE_DIR, "..", "portfolio", "active_positions.json")
+POSITIONS_FILE = os.path.join(BASE_DIR, "..", "portfolio", "active_positions.json")
 
 
 # ── CCL ───────────────────────────────────────────────────────────────────────

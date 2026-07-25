@@ -18,12 +18,11 @@ from pathlib import Path
 scripts_dir = Path(__file__).parent / "scripts"
 sys.path.insert(0, str(scripts_dir))
 
-# Load .env from Jarvis root (handles both Mac path formats)
+# Load .env from Jarvis root
 def _load_dotenv():
     possible_env_paths = [
-        Path(__file__).parents[3] / "Jarvis\\.env",
-        Path(__file__).parents[3] / ".env",
-        Path.home() / "Desktop" / "Jarvis" / "Jarvis\\.env",
+        Path(__file__).parents[2] / ".env",
+        Path.home() / "Desktop" / "Jarvis" / ".env",
     ]
     for env_path in possible_env_paths:
         if env_path.exists():
