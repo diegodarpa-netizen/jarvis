@@ -1,0 +1,305 @@
+//@version=5
+strategy("XAU/USD Código En Vivo", shorttitle="XAU VIVO", overlay=true,
+         default_qty_type=strategy.percent_of_equity, default_qty_value=1,
+         initial_capital=10000, currency=currency.USD,
+         commission_type=strategy.commission.cash_per_contract, commission_value=0,
+         slippage=0, calc_on_every_tick=false, max_bars_back=500,
+         max_lines_count=500)
+
+// ══════════════════════════════════════════════════════════════
+// CÓDIGO EN VIVO — Basado en metodología REAL de Fabian Uade
+//
+// REGLA FUNDAMENTAL aprendida el 10/06/2026:
+// El código anterior (xau_v9 = codigo1) entraba apenas una vela M1
+// cerraba fuera del gray box. ESO ES INCORRECTO.
+//
+// LO QUE HACE FABIAN:
+//  1. Espera que una barra M3 CIERRE fuera del gray box → ChOC confirmado
+//  2. Espera pullback al nivel roto
+//  3. Busca envolvente bajista/alcista en M1 sobre el pullback → MEC
+//  4. Entra SELL/BUY
+//
+// Gray box: HIGH y LOW del último pivot M3 significativo en sesión
+// ══════════════════════════════════════════════════════════════
+
+// ── BLOQUE 0 · FILTRO NOTICIAS ──────────────────────────────
+no_news   = input.bool(false, "⛔ Día de noticia roja (NFP/FOMC/CPI/GDP)", group="Filtros")
+news_time = input.session("0820-0833", "Ventana de noticia (NY time)", group="Filtros")
+in_news   = not na(time("1", news_time, "America/New_York"))
+news_block = no_news or in_news
+
+// ── BLOQUE 1 · SESIÓN NY ────────────────────────────────────
+in_session = not na(time("1", "0901-1059", "America/New_York"))
+bgcolor(in_session ? color.new(color.blue, 92) : na, title="Sesion operativa")
+
+// ── BLOQUE 2 · DATOS M3 ─────────────────────────────────────
+// Barras M3 actuales y anteriores (para detectar ChOC M3)
+m3_close = request.security(syminfo.tickerid, "3", close, lookahead=barmerge.lookahead_off)
+m3_open  = request.security(syminfo.tickerid, "3", open,  lookahead=barmerge.lookahead_off)
+m3_high  = request.security(syminfo.tickerid, "3", high,  lookahead=barmerge.lookahead_off)
+m3_low   = request.security(syminfo.tickerid, "3", low,   lookahead=barmerge.lookahead_off)
+
+// Barra M3 anterior (confirmada, cerrada)
+m3_close1 = request.security(syminfo.tickerid, "3", close[1], lookahead=barmerge.lookahead_off)
+m3_open1  = request.security(syminfo.tickerid, "3", open[1],  lookahead=barmerge.lookahead_off)
+m3_high1  = request.security(syminfo.tickerid, "3", high[1],  lookahead=barmerge.lookahead_off)
+m3_low1   = request.security(syminfo.tickerid, "3", low[1],   lookahead=barmerge.lookahead_off)
+
+// Dirección de las barras M3 cerradas
+m3_bull1 = m3_close1 > m3_open1  // barra M3[1] alcista
+m3_bear1 = m3_close1 < m3_open1  // barra M3[1] bajista
+m3_bull2 = request.security(syminfo.tickerid, "3", close[2] > open[2], lookahead=barmerge.lookahead_off)
+m3_bear2 = request.security(syminfo.tickerid, "3", close[2] < open[2], lookahead=barmerge.lookahead_off)
+
+// ── BLOQUE 3 · GRAY BOX ─────────────────────────────────────
+// El gray box se fija con el primer pivot M3 de la sesión:
+// Pivot ALTO: barra[2] alcista + barra[1] bajista → máximo de ambas = gb_high, low[2] = gb_low
+// Pivot BAJO: barra[2] bajista + barra[1] alcista → mínimo de ambas = gb_low, high[2] = gb_high
+
+pip         = syminfo.mintick
+min_gb_pts  = input.float(10.0, "Mín puntos Gray Box", group="Gray Box", step=0.5)
+
+var float gb_high    = na
+var float gb_low     = na
+var bool  gb_done    = false
+var bool  new_day    = false
+
+// Reset diario
+is_new_day = dayofweek != dayofweek[1]
+if is_new_day
+    gb_high  := na
+    gb_low   := na
+    gb_done  := false
+
+// Pivot M3 para SELL (barra[2] alcista + barra[1] bajista)
+m3_pivot_sell_h = request.security(syminfo.tickerid, "3",
+     close[2] > open[2] and close[1] < open[1] ? math.max(high[1], high[2]) : na,
+     lookahead=barmerge.lookahead_off)
+m3_pivot_sell_l = request.security(syminfo.tickerid, "3",
+     close[2] > open[2] and close[1] < open[1] ? low[2] : na,
+     lookahead=barmerge.lookahead_off)
+
+// Pivot M3 para BUY (barra[2] bajista + barra[1] alcista)
+m3_pivot_buy_l = request.security(syminfo.tickerid, "3",
+     close[2] < open[2] and close[1] > open[1] ? math.min(low[1], low[2]) : na,
+     lookahead=barmerge.lookahead_off)
+m3_pivot_buy_h = request.security(syminfo.tickerid, "3",
+     close[2] < open[2] and close[1] > open[1] ? high[2] : na,
+     lookahead=barmerge.lookahead_off)
+
+gb_valid_sell = not na(m3_pivot_sell_h) and not na(m3_pivot_sell_l) and (m3_pivot_sell_h - m3_pivot_sell_l) >= min_gb_pts
+gb_valid_buy  = not na(m3_pivot_buy_h) and not na(m3_pivot_buy_l) and (m3_pivot_buy_h - m3_pivot_buy_l) >= min_gb_pts
+
+if in_session and not gb_done
+    if gb_valid_sell
+        gb_high := m3_pivot_sell_h
+        gb_low  := m3_pivot_sell_l
+        gb_done := true
+    else if gb_valid_buy
+        gb_high := m3_pivot_buy_h
+        gb_low  := m3_pivot_buy_l
+        gb_done := true
+
+// Actualizar si no hay ChOC todavía
+var bool choc_confirmed_bear = false
+var bool choc_confirmed_bull = false
+
+if in_session and gb_done and not choc_confirmed_bear and not choc_confirmed_bull
+    if gb_valid_sell
+        gb_high := m3_pivot_sell_h
+        gb_low  := m3_pivot_sell_l
+    else if gb_valid_buy
+        gb_high := m3_pivot_buy_h
+        gb_low  := m3_pivot_buy_l
+
+// ── BLOQUE 4 · CHOC M3 REAL (LA REGLA CLAVE) ────────────────
+// REGLA FABIAN: El ChOC es válido SOLO cuando una barra M3 CERRADA
+// está fuera del gray box. No basta con que M1 cruce momentáneamente.
+//
+// ChOC BAJISTA: barra M3 cierra BAJO gb_low
+// ChOC ALCISTA: barra M3 cierra SOBRE gb_high
+
+// Detectar cuando M3[1] (la última barra M3 cerrada) rompió el gray box
+m3_choc_bear_raw = gb_done and not na(gb_low) and m3_close1 < gb_low
+m3_choc_bull_raw = gb_done and not na(gb_high) and m3_close1 > gb_high
+
+// Solo contar el PRIMER ChOC de la sesión
+if in_session and m3_choc_bear_raw and not choc_confirmed_bear and not choc_confirmed_bull
+    choc_confirmed_bear := true
+
+if in_session and m3_choc_bull_raw and not choc_confirmed_bull and not choc_confirmed_bear
+    choc_confirmed_bull := true
+
+// Reset al nuevo día
+if is_new_day
+    choc_confirmed_bear := false
+    choc_confirmed_bull := false
+
+// ── BLOQUE 5 · ENVOLVENTE (M1) ──────────────────────────────
+// Tipos de envolvente (igual que codigo1)
+f_engulf_bear(c0, o0, c1, o1) =>
+    body0 = math.abs(c0 - o0)
+    body1 = math.abs(c1 - o1)
+    total0 = high - low
+    body_pct = total0 > 0 ? body0 / total0 : 0
+    c0 < o0 and c1 > o1 and o0 >= c1 and c0 <= o1 and body0 >= body1 * 0.8
+
+f_engulf_bull(c0, o0, c1, o1) =>
+    body0 = math.abs(c0 - o0)
+    body1 = math.abs(c1 - o1)
+    total0 = high - low
+    body_pct = total0 > 0 ? body0 / total0 : 0
+    c0 > o0 and c1 < o1 and o0 <= c1 and c0 >= o1 and body0 >= body1 * 0.8
+
+// Patrón ENV: pullback[1] + envolvente[0]
+// SELL: pullback alcista[1] + envolvente bajista[0]
+env_bear = in_session and in_session[1] and
+     close[1] > open[1] and                    // [1] pullback alcista
+     close < open and                           // [0] bajista
+     f_engulf_bear(close, open, close[1], open[1])
+
+// BUY: pullback bajista[1] + envolvente alcista[0]
+env_bull = in_session and in_session[1] and
+     close[1] < open[1] and                    // [1] pullback bajista
+     close > open and                           // [0] alcista
+     f_engulf_bull(close, open, close[1], open[1])
+
+// ── BLOQUE 6 · SEÑALES DE ENTRADA ───────────────────────────
+// REGLA FABIAN (aprendida 10/06/2026):
+// Solo entrar cuando:
+//  1. ChOC M3 confirmado (barra M3 cerró fuera del gray box) ✅
+//  2. Precio hizo pullback al nivel roto ✅
+//  3. Envolvente en M1 sobre el pullback ✅
+//
+// Para SELL: choc_confirmed_bear + pullback a ~gb_low + env_bear
+// Para BUY:  choc_confirmed_bull + pullback a ~gb_high + env_bull
+
+// Zona de pullback: precio volvió al nivel roto ±tolerancia
+pullback_tol = input.float(5.0, "Tolerancia pullback (pts)", group="Señales", step=0.5)
+
+// SELL: después de ChOC bajista, precio rebota a ~gb_low
+near_gb_low  = not na(gb_low) and high >= gb_low - pullback_tol and low <= gb_low + pullback_tol * 2
+// BUY: después de ChOC alcista, precio rebota a ~gb_high
+near_gb_high = not na(gb_high) and low <= gb_high + pullback_tol and high >= gb_high - pullback_tol * 2
+
+// Señales finales
+sig_sell = choc_confirmed_bear and near_gb_low and env_bear and strategy.position_size == 0 and not news_block
+sig_buy  = choc_confirmed_bull and near_gb_high and env_bull and strategy.position_size == 0 and not news_block
+
+// ── BLOQUE 7 · EJECUCIÓN ────────────────────────────────────
+if sig_sell
+    strategy.entry("SELL", strategy.short, comment="MEC-SELL")
+    label.new(bar_index, high + pip*3, "▼ MEC", color=color.red,
+         textcolor=color.white, style=label.style_label_down, size=size.small)
+
+if sig_buy
+    strategy.entry("BUY", strategy.long, comment="MEC-BUY")
+    label.new(bar_index, low - pip*3, "▲ MEC", color=color.lime,
+         textcolor=color.black, style=label.style_label_up, size=size.small)
+
+// ── BLOQUE 8 · TP/SL DESDE PRECIO DE FILL ───────────────────
+exec_long  = strategy.position_size > 0 and strategy.position_size[1] == 0
+exec_short = strategy.position_size < 0 and strategy.position_size[1] == 0
+
+if exec_short
+    ep   = strategy.position_avg_price
+    sl_p = not na(gb_high) ? gb_high : ep + 300 * pip
+    sl_p := math.max(sl_p, ep + pip * 5)
+    tp_p = ep - (sl_p - ep) * 0.9
+    strategy.exit("SELL_X", "SELL", stop=sl_p, limit=tp_p, comment_loss="SL", comment_profit="TP")
+
+if exec_long
+    ep   = strategy.position_avg_price
+    sl_p = not na(gb_low) ? gb_low : ep - 300 * pip
+    sl_p := math.min(sl_p, ep - pip * 5)
+    tp_p = ep + (ep - sl_p) * 0.9
+    strategy.exit("BUY_X", "BUY", stop=sl_p, limit=tp_p, comment_loss="SL", comment_profit="TP")
+
+// ── BLOQUE 9 · VISUAL ───────────────────────────────────────
+// Longitud de las líneas (en barras hacia la derecha)
+line_len = input.int(40, "Longitud líneas (barras)", group="Visual", minval=5, maxval=200)
+
+// Gray Box: líneas punteadas de longitud limitada, como Fabian
+// Se dibujan desde la barra donde se detecta el nivel, no en todo el chart
+var line ln_gb_high = na
+var line ln_gb_low  = na
+
+// Actualizar líneas del gray box cuando se setean o cambian
+gb_high_changed = gb_done and (na(gb_high[1]) or gb_high != gb_high[1])
+gb_low_changed  = gb_done and (na(gb_low[1])  or gb_low  != gb_low[1])
+
+if gb_high_changed
+    if not na(ln_gb_high)
+        line.delete(ln_gb_high)
+    ln_gb_high := line.new(bar_index, gb_high, bar_index + line_len, gb_high,
+         color=color.new(color.red, 30), width=1, style=line.style_dashed, extend=extend.none)
+
+if gb_low_changed
+    if not na(ln_gb_low)
+        line.delete(ln_gb_low)
+    ln_gb_low := line.new(bar_index, gb_low, bar_index + line_len, gb_low,
+         color=color.new(color.teal, 30), width=1, style=line.style_dashed, extend=extend.none)
+
+// Línea de ChOC: cuando M3 confirma, trazar línea horizontal en el nivel roto
+var line ln_choc_bear = na
+var line ln_choc_bull = na
+
+choc_bear_just = choc_confirmed_bear and not choc_confirmed_bear[1]
+choc_bull_just = choc_confirmed_bull and not choc_confirmed_bull[1]
+
+if choc_bear_just
+    ln_choc_bear := line.new(bar_index, gb_low, bar_index + line_len, gb_low,
+         color=color.new(color.red, 0), width=2, style=line.style_dashed, extend=extend.none)
+
+if choc_bull_just
+    ln_choc_bull := line.new(bar_index, gb_high, bar_index + line_len, gb_high,
+         color=color.new(color.lime, 0), width=2, style=line.style_dashed, extend=extend.none)
+
+// ChOC M3 confirmado → fondo suave
+bgcolor(choc_confirmed_bear ? color.new(color.red, 92) : na, title="ChOC Bajista M3")
+bgcolor(choc_confirmed_bull ? color.new(color.lime, 92) : na, title="ChOC Alcista M3")
+
+// Puntos de envolvente detectada
+plotshape(env_bear and choc_confirmed_bear, title="ENV Bear", location=location.abovebar,
+     style=shape.circle, color=color.red, size=size.tiny)
+plotshape(env_bull and choc_confirmed_bull, title="ENV Bull", location=location.belowbar,
+     style=shape.circle, color=color.lime, size=size.tiny)
+
+// ── DASHBOARD ───────────────────────────────────────────────
+var table dash = table.new(position.top_right, 2, 8,
+     bgcolor=color.new(color.black, 70), border_width=1, border_color=color.new(color.gray, 50))
+
+if barstate.islast
+    table.cell(dash, 0, 0, "XAU EN VIVO", text_color=color.orange, text_size=size.small, bgcolor=color.new(color.orange, 85))
+    table.cell(dash, 1, 0, "M3 Confirm", text_color=color.orange, text_size=size.small, bgcolor=color.new(color.orange, 85))
+
+    sc = in_session ? color.lime : color.gray
+    table.cell(dash, 0, 1, "Sesion NY",   text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 1, in_session ? "ACTIVA" : "CERRADA", text_color=sc, text_size=size.small)
+
+    gc = gb_done ? color.lime : color.gray
+    table.cell(dash, 0, 2, "Gray Box",    text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 2, gb_done ? str.tostring(gb_high, "#.###") + " / " + str.tostring(gb_low, "#.###") : "---", text_color=gc, text_size=size.small)
+
+    cc_bear = choc_confirmed_bear ? color.red   : color.gray
+    cc_bull = choc_confirmed_bull ? color.lime  : color.gray
+    table.cell(dash, 0, 3, "ChOC M3",     text_color=color.silver, text_size=size.small)
+    choc_txt = choc_confirmed_bear ? "BAJISTA ▼" : choc_confirmed_bull ? "ALCISTA ▲" : "Esperando..."
+    choc_col = choc_confirmed_bear ? color.red  : choc_confirmed_bull ? color.lime : color.gray
+    table.cell(dash, 1, 3, choc_txt, text_color=choc_col, text_size=size.small)
+
+    pc = strategy.position_size > 0 ? color.lime : strategy.position_size < 0 ? color.red : color.gray
+    pt = strategy.position_size > 0 ? "LONG ▲" : strategy.position_size < 0 ? "SHORT ▼" : "FLAT"
+    table.cell(dash, 0, 4, "Posicion",    text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 4, pt, text_color=pc, text_size=size.small)
+
+    table.cell(dash, 0, 5, "GB High",     text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 5, not na(gb_high) ? str.tostring(gb_high, "#.###") : "---", text_color=color.red, text_size=size.small)
+
+    table.cell(dash, 0, 6, "GB Low",      text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 6, not na(gb_low) ? str.tostring(gb_low, "#.###") : "---", text_color=color.teal, text_size=size.small)
+
+    near_txt = choc_confirmed_bear and near_gb_low ? "SI - zona MEC ▼" : choc_confirmed_bull and near_gb_high ? "SI - zona MEC ▲" : "No"
+    near_col = (choc_confirmed_bear and near_gb_low) or (choc_confirmed_bull and near_gb_high) ? color.orange : color.gray
+    table.cell(dash, 0, 7, "Pullback",    text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 7, near_txt, text_color=near_col, text_size=size.small)

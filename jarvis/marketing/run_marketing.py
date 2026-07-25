@@ -112,8 +112,8 @@ def main():
 
     else:
         # Interactive agent
-        from marketing_agent import run_interactive_agent
-        run_interactive_agent()
+        from marketing_agent import run_agent
+        run_agent()
 
 
 if __name__ == "__main__":

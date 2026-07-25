@@ -1,0 +1,310 @@
+//@version=5
+strategy("BTC Plan Tecnico v1", shorttitle="BTC v1", overlay=true,
+         default_qty_type=strategy.percent_of_equity, default_qty_value=10,
+         initial_capital=10000, currency=currency.USD,
+         commission_type=strategy.commission.percent, commission_value=0.05,
+         slippage=2, calc_on_every_tick=false, max_bars_back=500)
+
+// -----------------------------------------------
+// BLOQUE 1 - ALPHATREND (filtro de tendencia)
+// Mejor estrategia publica encontrada en el estudio
+// Combina ATR + CCI: evita señales en laterales
+// -----------------------------------------------
+
+atr_period = input.int(14,    "ATR Period",  group="AlphaTrend")
+coeff      = input.float(1.5, "ATR Coeff",  step=0.1, group="AlphaTrend")
+use_rsi_at = input.bool(false, "Usar RSI en lugar de CCI", group="AlphaTrend")
+
+atr_val   = ta.atr(atr_period)
+upT       = hl2 - coeff * atr_val
+downT     = hl2 + coeff * atr_val
+osc       = use_rsi_at ? ta.rsi(close, atr_period) - 50 : ta.cci(close, atr_period)
+
+var float alphaTrend = na
+alphaTrend := osc >= 0 ?
+              (na(alphaTrend[1]) ? upT   : math.max(upT,   alphaTrend[1])) :
+              (na(alphaTrend[1]) ? downT : math.min(downT, alphaTrend[1]))
+
+at_bull = ta.crossover(alphaTrend,  alphaTrend[2])
+at_bear = ta.crossunder(alphaTrend, alphaTrend[2])
+
+var int at_trend = 0
+if at_bull
+    at_trend := 1
+if at_bear
+    at_trend := -1
+
+plot(alphaTrend, "AlphaTrend", color=at_trend == 1 ? color.lime : at_trend == -1 ? color.red : color.gray, linewidth=2)
+
+// -----------------------------------------------
+// BLOQUE 2 - TENDENCIA HTF
+// Pivots en TF superior para determinar estructura
+// Solo operamos alineados con la tendencia HTF
+// -----------------------------------------------
+
+htf = input.string("15", "Timeframe estructura", options=["3","5","15","60","240"], group="Estructura")
+min_brk = input.float(0.1, "Quiebre minimo %", step=0.05, group="Estructura") / 100
+
+m3_ph = request.security(syminfo.tickerid, htf, not na(ta.pivothigh(high,1,1)) ? ta.highest(high,4) : na, lookahead=barmerge.lookahead_off)
+m3_pl = request.security(syminfo.tickerid, htf, not na(ta.pivotlow(low,1,1))   ? ta.lowest(low,4)   : na, lookahead=barmerge.lookahead_off)
+
+var float htf_h = na
+var float htf_l = na
+
+if not na(m3_ph)
+    htf_h := m3_ph
+if not na(m3_pl)
+    htf_l := m3_pl
+
+brk_up = not na(htf_h) and close > htf_h and (close - htf_h) / htf_h >= min_brk
+brk_dn = not na(htf_l) and close < htf_l and (htf_l - close) / htf_l >= min_brk
+
+var int htf_trend = 0
+if brk_up
+    htf_trend := 1
+if brk_dn
+    htf_trend := -1
+
+// Dibuja niveles HTF
+if barstate.isconfirmed
+    if not na(m3_ph)
+        line.new(bar_index, m3_ph, bar_index+24, m3_ph, color=color.new(color.red,30),  style=line.style_dotted, width=2)
+    if not na(m3_pl)
+        line.new(bar_index, m3_pl, bar_index+24, m3_pl, color=color.new(color.teal,30), style=line.style_dotted, width=2)
+
+// -----------------------------------------------
+// BLOQUE 3 - VELAS ENVOLVENTES
+// Tres tipos: Estandar (85% cuerpo), Martillo, Doji
+// Logica probada y refinada en XAU v4
+// -----------------------------------------------
+
+f_total(h,l)    => h - l
+f_body(o,c)     => math.abs(c - o)
+f_upper(h,o,c)  => h - math.max(o,c)
+f_lower(l,o,c)  => math.min(o,c) - l
+f_br(h,l,o,c)   => f_total(h,l) > 0 ? f_body(o,c)    / f_total(h,l) : 0.0
+f_ur(h,l,o,c)   => f_total(h,l) > 0 ? f_upper(h,o,c) / f_total(h,l) : 0.0
+f_lr(h,l,o,c)   => f_total(h,l) > 0 ? f_lower(l,o,c) / f_total(h,l) : 0.0
+
+f_std_bull(h,l,o,c) => c > o and f_br(h,l,o,c) >= 0.85 and f_ur(h,l,o,c) < 0.15 and c > h[1]
+f_std_bear(h,l,o,c) => c < o and f_br(h,l,o,c) >= 0.85 and f_lr(h,l,o,c) < 0.15 and c < l[1]
+f_hmr_bull(h,l,o,c) => c > o and f_br(h,l,o,c) >= 0.50 and f_br(h,l,o,c) < 0.85 and f_lower(l,o,c) > f_body(o,c) and c > h[1]
+f_hmr_bear(h,l,o,c) => c < o and f_br(h,l,o,c) >= 0.50 and f_br(h,l,o,c) < 0.85 and f_upper(h,o,c) > f_body(o,c) and c < l[1]
+
+f_doji_bull(h,l,o,c) =>
+    lr = f_lr(h,l,o,c)
+    if lr < 0.05
+        f_std_bull(h,l,o,c)
+    else
+        tot = f_total(h,l)
+        sym = tot > 0 ? math.abs(f_lower(l,o,c) - f_upper(h,o,c)) / tot <= 0.30 : false
+        c > o and f_br(h,l,o,c) <= 0.50 and lr >= 0.15 and f_ur(h,l,o,c) >= 0.15 and sym and c > h[1]
+
+f_doji_bear(h,l,o,c) =>
+    ur = f_ur(h,l,o,c)
+    if ur < 0.05
+        f_std_bear(h,l,o,c)
+    else
+        tot = f_total(h,l)
+        sym = tot > 0 ? math.abs(f_lower(l,o,c) - f_upper(h,o,c)) / tot <= 0.30 : false
+        c < o and f_br(h,l,o,c) <= 0.50 and f_lr(h,l,o,c) >= 0.15 and ur >= 0.15 and sym and c < l[1]
+
+f_eng_bull(h,l,o,c) => f_std_bull(h,l,o,c) or f_hmr_bull(h,l,o,c) or f_doji_bull(h,l,o,c)
+f_eng_bear(h,l,o,c) => f_std_bear(h,l,o,c) or f_hmr_bear(h,l,o,c) or f_doji_bear(h,l,o,c)
+
+// -----------------------------------------------
+// BLOQUE 4 - PATRON PULLBACK + ENVOLVENTE
+// 1+ velas en contra (pullback) seguidas de envolvente
+// que cubre todo el pullback (high>mxH y low<mnL)
+// -----------------------------------------------
+
+f_pat_bull() =>
+    if not f_eng_bull(high, low, open, close)
+        false
+    else
+        pb  = 0
+        mxH = 0.0
+        mnL = 999999.0
+        for i = 1 to 10
+            if close[i] < open[i]
+                pb  := pb + 1
+                mxH := math.max(mxH, high[i])
+                mnL := math.min(mnL, low[i])
+            else
+                break
+        pb > 0 and high > mxH and low < mnL
+
+f_pat_bear() =>
+    if not f_eng_bear(high, low, open, close)
+        false
+    else
+        pb  = 0
+        mxH = 0.0
+        mnL = 999999.0
+        for i = 1 to 10
+            if close[i] > open[i]
+                pb  := pb + 1
+                mxH := math.max(mxH, high[i])
+                mnL := math.min(mnL, low[i])
+            else
+                break
+        pb > 0 and low < mnL and high > mxH
+
+// -----------------------------------------------
+// BLOQUE 5 - FILTROS
+// RSI: no entrar en zonas extremas
+// Todos desactivables individualmente
+// -----------------------------------------------
+
+use_rsi_f  = input.bool(true, "Filtro RSI",  group="Filtros")
+rsi_period = input.int(14,    "RSI Period",  group="Filtros")
+rsi_ob     = input.int(70,    "RSI OB",      group="Filtros")
+rsi_os     = input.int(30,    "RSI OS",      group="Filtros")
+
+rsi_val      = ta.rsi(close, rsi_period)
+rsi_ok_bull  = not use_rsi_f or rsi_val < rsi_ob
+rsi_ok_bear  = not use_rsi_f or rsi_val > rsi_os
+
+// -----------------------------------------------
+// BLOQUE 6 - SEÑALES
+// Modo ESTRICTO:  AlphaTrend + HTF + pullback+envolvente
+// Modo NORMAL:    AlphaTrend + HTF + envolvente simple
+// Modo RELAJADO:  AlphaTrend + envolvente simple
+// -----------------------------------------------
+
+signal_mode = input.string("Normal", "Modo señal", options=["Estricto","Normal","Relajado"], group="Señales")
+
+eng_bull = f_eng_bull(high, low, open, close)
+eng_bear = f_eng_bear(high, low, open, close)
+pat_bull  = f_pat_bull()
+pat_bear  = f_pat_bear()
+
+entry_bull = signal_mode == "Estricto" ? pat_bull  : eng_bull
+entry_bear = signal_mode == "Estricto" ? pat_bear  : eng_bear
+
+bull_base = entry_bull and at_trend == 1 and rsi_ok_bull
+bear_base = entry_bear and at_trend == -1 and rsi_ok_bear
+
+sig_raw_bull = signal_mode == "Relajado" ? bull_base : (bull_base and htf_trend == 1)
+sig_raw_bear = signal_mode == "Relajado" ? bear_base : (bear_base and htf_trend == -1)
+
+// -----------------------------------------------
+// BLOQUE 7 - LIMITES DIARIOS Y ORDENES
+// Max SL y TP por dia configurable
+// SL: ATR-based | TP: RR configurable
+// -----------------------------------------------
+
+rr_ratio     = input.float(1.5, "Risk/Reward",  step=0.1, group="Risk")
+atr_sl_m     = input.float(1.5, "ATR SL Mult", step=0.1, group="Risk")
+atr_sl_p     = input.int(14,    "ATR SL Period",          group="Risk")
+max_daily_sl = input.int(2,     "Max SL/dia",             group="Risk")
+max_daily_tp = input.int(2,     "Max TP/dia",             group="Risk")
+
+atr_sl = ta.atr(atr_sl_p)
+
+var int day_sl      = 0
+var int day_tp      = 0
+var int last_day    = na
+var int last_tr_cnt = 0
+
+curr_day = dayofmonth(time)
+if curr_day != last_day
+    day_sl      := 0
+    day_tp      := 0
+    last_tr_cnt := strategy.closedtrades
+    last_day    := curr_day
+
+if strategy.closedtrades > last_tr_cnt
+    for i = last_tr_cnt to strategy.closedtrades - 1
+        if strategy.closedtrades.profit(i) >= 0
+            day_tp := day_tp + 1
+        else
+            day_sl := day_sl + 1
+    last_tr_cnt := strategy.closedtrades
+
+can_trade = day_tp < max_daily_tp and day_sl < max_daily_sl
+
+sig_bull = sig_raw_bull and can_trade
+sig_bear = sig_raw_bear and can_trade
+
+// Etiquetas
+if barstate.isconfirmed
+    if sig_bull
+        label.new(bar_index, low,  "BUY",  style=label.style_label_up,   color=color.new(color.green,20), textcolor=color.white, size=size.small)
+    if sig_bear
+        label.new(bar_index, high, "SELL", style=label.style_label_down,  color=color.new(color.red,20),   textcolor=color.white, size=size.small)
+
+// Hedge
+if strategy.position_size > 0 and sig_bear
+    strategy.close("BUY", comment="HEDGE")
+if strategy.position_size < 0 and sig_bull
+    strategy.close("SELL", comment="HEDGE")
+
+// Entradas
+if sig_bull and strategy.position_size == 0
+    sl = close - atr_sl * atr_sl_m
+    sl := math.min(sl, not na(htf_l) ? htf_l : sl)
+    sl := math.min(sl, close - syminfo.mintick * 10)
+    tp = close + (close - sl) * rr_ratio
+    strategy.entry("BUY",  strategy.long,  comment="BUY")
+    strategy.exit("BUY_X", "BUY",  stop=sl, limit=tp, comment_loss="SL", comment_profit="TP")
+
+if sig_bear and strategy.position_size == 0
+    sl = close + atr_sl * atr_sl_m
+    sl := math.max(sl, not na(htf_h) ? htf_h : sl)
+    sl := math.max(sl, close + syminfo.mintick * 10)
+    tp = close - (sl - close) * rr_ratio
+    strategy.entry("SELL",  strategy.short, comment="SELL")
+    strategy.exit("SELL_X", "SELL", stop=sl, limit=tp, comment_loss="SL", comment_profit="TP")
+
+// -----------------------------------------------
+// BLOQUE 8 - DASHBOARD
+// -----------------------------------------------
+
+var table dash = table.new(position.top_right, 2, 9,
+     bgcolor=color.new(color.black,60), border_color=color.new(color.gray,40),
+     border_width=1, frame_color=color.new(color.gray,20), frame_width=1)
+
+if barstate.islast
+    table.cell(dash, 0, 0, "BTC v1",   text_color=color.white,  bgcolor=color.new(color.navy,10), text_size=size.small)
+    table.cell(dash, 1, 0, "AlphaTrend+HTF", text_color=color.silver, bgcolor=color.new(color.navy,10), text_size=size.small)
+
+    atc = at_trend == 1 ? color.lime : at_trend == -1 ? color.red : color.gray
+    att = at_trend == 1 ? "BULL ▲" : at_trend == -1 ? "BEAR ▼" : "NEUTRAL"
+    table.cell(dash, 0, 1, "AlphaTrend", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 1, att, text_color=atc, text_size=size.small)
+
+    htfc = htf_trend == 1 ? color.lime : htf_trend == -1 ? color.red : color.gray
+    htft = htf_trend == 1 ? "ALCISTA ▲" : htf_trend == -1 ? "BAJISTA ▼" : "NEUTRAL"
+    table.cell(dash, 0, 2, "Tendencia HTF", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 2, htft, text_color=htfc, text_size=size.small)
+
+    rc = rsi_val > rsi_ob ? color.red : rsi_val < rsi_os ? color.yellow : color.lime
+    table.cell(dash, 0, 3, "RSI", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 3, str.tostring(math.round(rsi_val, 1)), text_color=rc, text_size=size.small)
+
+    slc = day_sl >= max_daily_sl ? color.red : day_sl == 1 ? color.yellow : color.lime
+    table.cell(dash, 0, 4, "SL hoy", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 4, str.tostring(day_sl) + "/" + str.tostring(max_daily_sl), text_color=slc, text_size=size.small)
+
+    tpc = day_tp >= max_daily_tp ? color.orange : color.lime
+    table.cell(dash, 0, 5, "TP hoy", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 5, str.tostring(day_tp) + "/" + str.tostring(max_daily_tp), text_color=tpc, text_size=size.small)
+
+    ctc = can_trade ? color.lime : color.red
+    table.cell(dash, 0, 6, "Opera hoy", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 6, can_trade ? "SI" : "NO", text_color=ctc, text_size=size.small)
+
+    pc = strategy.position_size > 0 ? color.lime : strategy.position_size < 0 ? color.red : color.gray
+    pt = strategy.position_size > 0 ? "LONG ▲" : strategy.position_size < 0 ? "SHORT ▼" : "FLAT"
+    table.cell(dash, 0, 7, "Posicion", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 7, pt, text_color=pc, text_size=size.small)
+
+    ht = not na(htf_h) ? str.tostring(htf_h, "#.##") : "---"
+    lt = not na(htf_l) ? str.tostring(htf_l, "#.##") : "---"
+    table.cell(dash, 0, 8, "Alto/Bajo HTF", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 8, ht + " / " + lt, text_color=color.white, text_size=size.tiny)
+
+// Alertas
+alertcondition(sig_bull,  "BTC BUY",  "BTCUSDT | COMPRA | {{close}}")
+alertcondition(sig_bear,  "BTC SELL", "BTCUSDT | VENTA  | {{close}}")

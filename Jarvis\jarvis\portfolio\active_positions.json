@@ -106,8 +106,8 @@
     {
       "ticker": "SPY",
       "name": "ETF SPDR S&P 500",
-      "quantity": 182,
-      "avg_buy_price": 31.96,
+      "quantity": 546,
+      "avg_buy_price": 10.65,
       "type": "cedear",
       "buy_date": "",
       "notes": ""

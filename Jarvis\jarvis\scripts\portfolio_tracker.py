@@ -1,160 +1,255 @@
 """
-Jarvis - Portfolio Tracker
-Lee positions.json y calcula P&L en tiempo real contra Yahoo Finance
-Uso: python portfolio_tracker.py [--export]
+Jarvis - Portfolio Tracker (CEDEAR Edition)
+Obtiene precios de CEDEARs en ARS desde Yahoo Finance (.BA),
+convierte a USD usando el tipo CCL del día y calcula P&L real.
+Uso: python portfolio_tracker.py [--export] [--json]
 """
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
-from pathlib import Path
 
 try:
     import yfinance as yf
-except ImportError:
-    print("ERROR: yfinance no instalado. Ejecutá: pip install yfinance")
+    import requests
+except ImportError as e:
+    print(f"ERROR: Falta instalar dependencias. Ejecutá: pip install yfinance requests\n{e}")
     sys.exit(1)
 
-POSITIONS_FILE = Path(__file__).parent.parent / "portfolio" / "active_positions.json"
+# ── Rutas ────────────────────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+POSITIONS_FILE = os.path.join(BASE_DIR, "Jarvis\\jarvis\\portfolio\\active_positions.json")
+
+# Si el path con backslash no existe, intentar path normal (en caso de migración futura)
+if not os.path.exists(POSITIONS_FILE):
+    POSITIONS_FILE = os.path.join(BASE_DIR, "..", "portfolio", "active_positions.json")
 
 
-def load_positions() -> list:
-    if not POSITIONS_FILE.exists():
-        print(f"ERROR: No se encontró {POSITIONS_FILE}", file=sys.stderr)
-        sys.exit(1)
+# ── CCL ───────────────────────────────────────────────────────────────────────
+def get_ccl() -> float:
+    """Obtiene el tipo de cambio CCL (Contado con Liqui) del día."""
+    fuentes = [
+        ("dolarapi.com",     "https://dolarapi.com/v1/dolares/contadoconliqui", lambda r: r.get("venta")),
+        ("dolarapi.com MEP", "https://dolarapi.com/v1/dolares/mep",             lambda r: r.get("venta")),
+    ]
+    for nombre, url, extractor in fuentes:
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                valor = extractor(r.json())
+                if valor:
+                    return float(valor)
+        except Exception:
+            pass
 
-    with open(POSITIONS_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    # Fallback: calcular CCL implícito usando SPY.BA vs SPY NYSE
+    try:
+        spy_ba = yf.Ticker("SPY.BA").info
+        spy_us = yf.Ticker("SPY").info
+        p_ba = spy_ba.get("currentPrice") or spy_ba.get("regularMarketPrice")
+        p_us = spy_us.get("currentPrice") or spy_us.get("regularMarketPrice")
+        # SPY CEDEAR ratio oficial BYMA = 5 (5 CEDEARs = 1 SPY)
+        if p_ba and p_us:
+            return round(p_ba / (p_us / 5), 2)
+    except Exception:
+        pass
 
-    return data.get("positions", [])
+    # Último recurso: tipo hardcodeado (actualizar si es necesario)
+    return 1450.0
 
 
-def get_current_prices(tickers: list) -> dict:
+# ── Precios CEDEAR ────────────────────────────────────────────────────────────
+def get_cedear_prices(tickers: list) -> dict:
+    """
+    Obtiene precios actuales de CEDEARs en ARS usando el sufijo .BA de Yahoo Finance.
+    Devuelve dict {ticker: {price_ars, prev_close_ars, name, cambio_dia_pct}}
+    """
     prices = {}
     for ticker in tickers:
-        if ticker == "EJEMPLO":
+        if ticker in ("EJEMPLO",):
             continue
+        ba_ticker = f"{ticker}.BA"
         try:
-            stock = yf.Ticker(ticker)
+            stock = yf.Ticker(ba_ticker)
             info = stock.info
             price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
-            name = info.get("longName") or info.get("shortName") or ticker
-            prices[ticker] = {
-                "current_price": price,
-                "name": name,
-                "currency": info.get("currency", "USD")
-            }
-        except Exception as e:
-            prices[ticker] = {"current_price": None, "name": ticker, "error": str(e)}
+            prev  = info.get("previousClose") or price
+            name  = info.get("longName") or info.get("shortName") or ticker
+            cambio = ((price - prev) / prev * 100) if (prev and prev != 0) else 0.0
+            if price:
+                prices[ticker] = {
+                    "price_ars":      round(float(price), 2),
+                    "prev_close_ars": round(float(prev), 2),
+                    "cambio_dia_pct": round(cambio, 2),
+                    "name":           name,
+                    "ok":             True,
+                }
+                continue
+        except Exception:
+            pass
+
+        # Fallback: intentar con el ticker directo en USD (menos preciso para CEDEARs)
+        prices[ticker] = {"price_ars": None, "cambio_dia_pct": 0, "name": ticker, "ok": False}
 
     return prices
 
 
-def calculate_portfolio(positions: list, current_prices: dict) -> dict:
-    total_invested = 0
-    total_current_value = 0
+# ── Carga posiciones ──────────────────────────────────────────────────────────
+def load_positions() -> list:
+    if not os.path.exists(POSITIONS_FILE):
+        print(f"ERROR: No se encontró {POSITIONS_FILE}", file=sys.stderr)
+        sys.exit(1)
+    with open(POSITIONS_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("positions", [])
+
+
+# ── Cálculo P&L ───────────────────────────────────────────────────────────────
+def calculate_portfolio(positions: list, cedear_prices: dict, ccl: float) -> dict:
+    total_costo_usd   = 0.0
+    total_valor_usd   = 0.0
+    total_valor_ars   = 0.0
     rows = []
 
     for pos in positions:
-        ticker = pos["ticker"]
+        ticker  = pos["ticker"]
         if ticker == "EJEMPLO":
             continue
+        qty     = pos.get("quantity", 0)
+        buy_usd = pos.get("avg_buy_price", 0)   # USD por CEDEAR al momento de compra
+        costo_usd = qty * buy_usd
 
-        qty = pos.get("quantity", 0)
-        avg_buy = pos.get("avg_buy_price", 0)
-        invested = qty * avg_buy
+        pdata = cedear_prices.get(ticker, {})
+        price_ars = pdata.get("price_ars")
 
-        price_data = current_prices.get(ticker, {})
-        current_price = price_data.get("current_price")
-
-        if current_price:
-            current_value = qty * current_price
-            pnl_usd = current_value - invested
-            pnl_pct = (pnl_usd / invested * 100) if invested > 0 else 0
+        if price_ars:
+            valor_ars = qty * price_ars
+            valor_usd = valor_ars / ccl
+            pnl_usd   = valor_usd - costo_usd
+            pnl_pct   = (pnl_usd / costo_usd * 100) if costo_usd else 0
         else:
-            current_value = None
-            pnl_usd = None
-            pnl_pct = None
+            valor_ars = None
+            valor_usd = None
+            pnl_usd   = None
+            pnl_pct   = None
 
-        total_invested += invested
-        if current_value:
-            total_current_value += current_value
+        total_costo_usd += costo_usd
+        if valor_usd:
+            total_valor_usd += valor_usd
+        if valor_ars:
+            total_valor_ars += valor_ars
 
         rows.append({
-            "ticker": ticker,
-            "name": price_data.get("name", ticker),
-            "type": pos.get("type", "stock"),
-            "quantity": qty,
-            "avg_buy_price": avg_buy,
-            "current_price": current_price,
-            "invested_usd": round(invested, 2),
-            "current_value_usd": round(current_value, 2) if current_value else None,
-            "pnl_usd": round(pnl_usd, 2) if pnl_usd is not None else None,
-            "pnl_pct": round(pnl_pct, 2) if pnl_pct is not None else None,
-            "buy_date": pos.get("buy_date"),
-            "notes": pos.get("notes", "")
+            "ticker":          ticker,
+            "name":            pdata.get("name", ticker),
+            "quantity":        qty,
+            "avg_buy_usd":     round(buy_usd, 4),
+            "price_ars":       round(price_ars, 2) if price_ars else None,
+            "price_usd":       round(price_ars / ccl, 4) if price_ars else None,
+            "cambio_dia_pct":  pdata.get("cambio_dia_pct", 0),
+            "costo_usd":       round(costo_usd, 2),
+            "valor_usd":       round(valor_usd, 2) if valor_usd else None,
+            "valor_ars":       round(valor_ars, 2) if valor_ars else None,
+            "pnl_usd":         round(pnl_usd, 2) if pnl_usd is not None else None,
+            "pnl_pct":         round(pnl_pct, 2) if pnl_pct is not None else None,
         })
 
-    total_pnl = total_current_value - total_invested
-    total_pnl_pct = (total_pnl / total_invested * 100) if total_invested > 0 else 0
+    rows.sort(key=lambda x: (x["pnl_usd"] or 0), reverse=True)
 
-    rows.sort(key=lambda x: (x["pnl_pct"] or 0), reverse=True)
+    total_pnl_usd = total_valor_usd - total_costo_usd
+    total_pnl_pct = (total_pnl_usd / total_costo_usd * 100) if total_costo_usd else 0
 
     return {
+        "ccl_usado": ccl,
         "summary": {
-            "total_invested_usd": round(total_invested, 2),
-            "total_current_value_usd": round(total_current_value, 2),
-            "total_pnl_usd": round(total_pnl, 2),
-            "total_pnl_pct": round(total_pnl_pct, 2),
-            "num_positions": len(rows)
+            "total_costo_usd":  round(total_costo_usd, 2),
+            "total_valor_usd":  round(total_valor_usd, 2),
+            "total_valor_ars":  round(total_valor_ars, 2),
+            "total_pnl_usd":    round(total_pnl_usd, 2),
+            "total_pnl_pct":    round(total_pnl_pct, 2),
+            "num_positions":    len(rows),
         },
-        "positions": rows,
-        "fetched_at": datetime.utcnow().isoformat()
+        "positions":  rows,
+        "fetched_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
     }
 
 
+# ── Impresión ─────────────────────────────────────────────────────────────────
 def print_table(portfolio: dict):
-    summary = portfolio["summary"]
-    positions = portfolio["positions"]
+    s   = portfolio["summary"]
+    ccl = portfolio["ccl_usado"]
+    pos = portfolio["positions"]
+    ts  = portfolio["fetched_at"]
 
-    print("\n" + "=" * 70)
-    print("  JARVIS — PORTFOLIO DE DIEGO RODRIGUEZ")
-    print("=" * 70)
-    print(f"  {'TICKER':<8} {'NOMBRE':<25} {'CANT':>6} {'P.COMPRA':>10} {'P.ACTUAL':>10} {'G/P USD':>10} {'G/P %':>8}")
-    print("-" * 70)
+    print()
+    print("=" * 80)
+    print(f"  JARVIS — PORTFOLIO DIEGO  |  {ts}  |  CCL: ${ccl:,.2f}")
+    print("=" * 80)
+    print(f"  {'TICKER':<7} {'CANT':>5}  {'P.COMPRA':>9}  {'P.ACTUAL ARS':>13}  {'HOY':>7}  {'COSTO USD':>10}  {'VALOR USD':>10}  {'P&L USD':>10}  {'P&L%':>7}")
+    print("-" * 80)
 
-    for pos in positions:
-        pnl_usd = f"${pos['pnl_usd']:+.2f}" if pos['pnl_usd'] is not None else "S/D"
-        pnl_pct = f"{pos['pnl_pct']:+.2f}%" if pos['pnl_pct'] is not None else "S/D"
-        current = f"${pos['current_price']:.2f}" if pos['current_price'] else "S/D"
-        name_short = pos['name'][:24]
-        print(f"  {pos['ticker']:<8} {name_short:<25} {pos['quantity']:>6} ${pos['avg_buy_price']:>9.2f} {current:>10} {pnl_usd:>10} {pnl_pct:>8}")
+    for r in pos:
+        if r["price_ars"] is None:
+            print(f"  {r['ticker']:<7} {r['quantity']:>5}  {'S/D':>9}  {'S/D':>13}  {'S/D':>7}  ${r['costo_usd']:>9,.0f}  {'S/D':>10}  {'S/D':>10}  {'S/D':>7}")
+            continue
 
-    print("=" * 70)
-    pnl_sign = "+" if summary["total_pnl_usd"] >= 0 else ""
-    print(f"  CAPITAL INVERTIDO:  ${summary['total_invested_usd']:,.2f}")
-    print(f"  VALOR ACTUAL:       ${summary['total_current_value_usd']:,.2f}")
-    print(f"  GANANCIA / PÉRDIDA: {pnl_sign}${summary['total_pnl_usd']:,.2f} ({pnl_sign}{summary['total_pnl_pct']:.2f}%)")
-    print("=" * 70 + "\n")
+        hoy  = f"{r['cambio_dia_pct']:+.2f}%"
+        pnl  = f"{'+'if r['pnl_usd']>=0 else ''}{r['pnl_usd']:,.0f}" if r["pnl_usd"] is not None else "S/D"
+        ppct = f"{'+'if r['pnl_pct']>=0 else ''}{r['pnl_pct']:.1f}%" if r["pnl_pct"] is not None else "S/D"
+        print(
+            f"  {r['ticker']:<7} {r['quantity']:>5}"
+            f"  ${r['avg_buy_usd']:>8.2f}"
+            f"  ${r['price_ars']:>12,.2f}"
+            f"  {hoy:>7}"
+            f"  ${r['costo_usd']:>9,.0f}"
+            f"  ${r['valor_usd']:>9,.0f}"
+            f"  {pnl:>10}"
+            f"  {ppct:>7}"
+        )
+
+    print("=" * 80)
+    pnl_t = s["total_pnl_usd"]
+    sgn   = "+" if pnl_t >= 0 else ""
+    print(f"  CAPITAL INVERTIDO:  u$s {s['total_costo_usd']:>10,.2f}")
+    print(f"  VALOR ACTUAL:       u$s {s['total_valor_usd']:>10,.2f}   ($ {s['total_valor_ars']:>14,.0f} ARS)")
+    print(f"  GANANCIA / PÉRDIDA: u$s {sgn}{abs(pnl_t):>9,.2f}   ({sgn}{s['total_pnl_pct']:.2f}%)")
+    print("=" * 80)
+    print()
+
+    # Mejor y peor posición
+    con_datos = [r for r in pos if r["pnl_usd"] is not None]
+    if con_datos:
+        mejor = max(con_datos, key=lambda x: x["pnl_usd"])
+        peor  = min(con_datos, key=lambda x: x["pnl_usd"])
+        print(f"  🏆  Mejor posición:  {mejor['ticker']} ({'+' if mejor['pnl_usd']>=0 else ''}u$s {mejor['pnl_usd']:,.0f} / {'+' if mejor['pnl_pct']>=0 else ''}{mejor['pnl_pct']:.1f}%)")
+        print(f"  ⚠️   Peor posición:   {peor['ticker']}  ({'+'if peor['pnl_usd']>=0 else ''}u$s {peor['pnl_usd']:,.0f} / {'+'if peor['pnl_pct']>=0 else ''}{peor['pnl_pct']:.1f}%)")
+        print()
 
 
+# ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="Jarvis Portfolio Tracker")
+    parser = argparse.ArgumentParser(description="Jarvis Portfolio Tracker — CEDEARs")
     parser.add_argument("--export", action="store_true", help="Exportar resultado como JSON")
-    parser.add_argument("--json", action="store_true", help="Output en JSON (para Jarvis/Claude)")
+    parser.add_argument("--json",   action="store_true", help="Output en JSON")
     args = parser.parse_args()
 
+    print("Obteniendo tipo de cambio CCL...")
+    ccl = get_ccl()
+
     positions = load_positions()
-    tickers = [p["ticker"] for p in positions]
-    current_prices = get_current_prices(tickers)
-    portfolio = calculate_portfolio(positions, current_prices)
+    tickers   = [p["ticker"] for p in positions if p["ticker"] != "EJEMPLO"]
+
+    print(f"Consultando precios CEDEAR en BYMA para {len(tickers)} posiciones...")
+    cedear_prices = get_cedear_prices(tickers)
+
+    portfolio = calculate_portfolio(positions, cedear_prices, ccl)
 
     if args.json or args.export:
-        print(json.dumps(portfolio, indent=2))
+        print(json.dumps(portfolio, indent=2, ensure_ascii=False))
     else:
         print_table(portfolio)
-        print(json.dumps(portfolio["summary"], indent=2))
 
 
 if __name__ == "__main__":

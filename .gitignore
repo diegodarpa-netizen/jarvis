@@ -1,5 +1,9 @@
 # Secrets
 .env
+*.env
+Jarvis/.env
+Jarvis\.env
+.claude/settings.local.json
 
 # macOS
 .DS_Store

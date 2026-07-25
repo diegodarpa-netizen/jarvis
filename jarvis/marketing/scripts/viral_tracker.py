@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 import anthropic
 
+from web_research import web_search_query
+
 CONFIG_PATH = Path(__file__).parent.parent / "data" / "config.json"
 KNOWLEDGE_PATH = Path(__file__).parent.parent / "data" / "knowledge_base.json"
 REPORTS_PATH = Path(__file__).parent.parent / "reports"
@@ -53,16 +55,8 @@ def track_viral_content():
 
     for query in research_queries:
         print(f"  → Analizando: {query[:55]}...")
-        response = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=1500,
-            system="""Eres un experto en contenido viral para clínicas de cirugía estética.
-Conoces en profundidad qué hace que un video o post explote en Instagram, TikTok y Facebook.
-Te especializas en el mercado argentino/latinoamericano y entiendes la psicología del paciente potencial.
-Das consejos extremadamente específicos y accionables, no generalidades.""",
-            messages=[{
-                "role": "user",
-                "content": f"""Investiga y analiza: {query}
+        patterns_text = web_search_query(
+            query=f"""Buscá información real y actual, y luego investigá y analizá: {query}
 
 Contexto: Clínica en Buenos Aires, procedimientos: {', '.join(procedures)}.
 Target: Mujeres 22-45 años, Buenos Aires y GBA.
@@ -73,14 +67,19 @@ Dame:
 3. Ejemplo concreto de un hook o frase que funciona
 4. Duración y formato ideal
 5. Cómo adaptarlo a nuestra clínica
-"""
-            }]
+""",
+            system="""Eres un experto en contenido viral para clínicas de cirugía estética.
+Conoces en profundidad qué hace que un video o post explote en Instagram, TikTok y Facebook.
+Te especializas en el mercado argentino/latinoamericano y entiendes la psicología del paciente potencial.
+Usá la herramienta de búsqueda web para verificar tendencias reales antes de responder — no respondas de memoria.
+Das consejos extremadamente específicos y accionables, no generalidades.""",
+            max_tokens=1500,
         )
 
         pattern = {
             "query": query,
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "patterns": response.content[0].text
+            "patterns": patterns_text
         }
         viral_patterns.append(pattern)
 

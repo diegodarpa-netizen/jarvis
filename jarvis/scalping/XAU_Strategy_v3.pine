@@ -1,0 +1,579 @@
+//@version=5
+strategy("XAU/USD — Plan Técnico Completo", shorttitle="XAU Scalp",
+     overlay=true, default_qty_type=strategy.percent_of_equity,
+     default_qty_value=1, initial_capital=10000, currency=currency.USD,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     slippage=2, calc_on_every_tick=false, max_bars_back=500)
+
+// ══════════════════════════════════════════════════════
+// INPUTS
+// ══════════════════════════════════════════════════════
+GS = "Sesion"
+GM = "Estructura M3"
+GE = "Entrada"
+GR = "Riesgo"
+GV = "Visual"
+
+i_sess      = input.session("0901-1059","Sesion hora NY",               group=GS)
+i_pivot_len = input.int(1,    "Pivot M3 barras c/lado",minval=1,maxval=3,group=GM)
+i_min_brk   = input.float(0.01,"Quiebre minimo %",      step=0.001,      group=GM)
+i_body_std  = input.float(85.0,"Envolvente cuerpo min %",step=1,          group=GE)
+i_body_hmr  = input.float(50.0,"Martillo cuerpo min %", step=1,           group=GE)
+i_doji_max  = input.float(50.0,"Doji cuerpo max %",      step=1,          group=GE)
+i_doji_sym  = input.float(30.0,"Doji simetria toler %",  step=5,          group=GE)
+i_pb_max    = input.int(5,    "Max velas pullback",                        group=GE)
+i_rr        = input.float(0.9, "RR Take Profit 1:X",    step=0.05,        group=GR)
+i_max_sl_pp = input.float(20000,"SL maximo pips",                          group=GR)
+i_sl_red    = input.float(40.0, "Reduccion SL % si excede", step=5,        group=GR)
+i_show_m3   = input.bool(true,"Niveles M3",   group=GV)
+i_show_sig  = input.bool(true,"BUY/SELL",     group=GV)
+i_show_sess = input.bool(true,"Sesion fondo", group=GV)
+i_show_choc = input.bool(true,"Marcar ChOC",  group=GV)
+i_show_dash = input.bool(true,"Dashboard",    group=GV)
+
+// ══════════════════════════════════════════════════════
+// SESION
+// ══════════════════════════════════════════════════════
+in_session = not na(time(timeframe.period, i_sess, "America/New_York"))
+
+// ══════════════════════════════════════════════════════
+// HELPERS DE VELA
+// ══════════════════════════════════════════════════════
+f_tot(h,l)    => h - l
+f_bod(o,c)    => math.abs(c - o)
+f_uw(h,o,c)   => h - math.max(o,c)
+f_lw(l,o,c)   => math.min(o,c) - l
+f_br(h,l,o,c) => f_tot(h,l)>0 ? f_bod(o,c) /f_tot(h,l) : 0.0
+f_ur(h,l,o,c) => f_tot(h,l)>0 ? f_uw(h,o,c)/f_tot(h,l) : 0.0
+f_lr(h,l,o,c) => f_tot(h,l)>0 ? f_lw(l,o,c)/f_tot(h,l) : 0.0
+
+// ══════════════════════════════════════════════════════
+// TIPOS DE VELA ENVOLVENTE
+// ══════════════════════════════════════════════════════
+
+// i) ESTANDAR BUY: cuerpo>=85% vela actual, mecha sup<15%, close>high[1]
+f_std_bull(h,l,o,c) =>
+    c>o and f_br(h,l,o,c)>=i_body_std/100 and f_ur(h,l,o,c)<0.15 and c>h[1]
+
+// i) ESTANDAR SELL: cuerpo>=85%, mecha inf<15%, close<low[1]
+f_std_bear(h,l,o,c) =>
+    c<o and f_br(h,l,o,c)>=i_body_std/100 and f_lr(h,l,o,c)<0.15 and c<l[1]
+
+// ii) MARTILLO BUY: cuerpo 50-85% vela actual, mecha inferior>cuerpo, close>high[1]
+f_hmr_bull(h,l,o,c) =>
+    c>o and f_br(h,l,o,c)>=i_body_hmr/100 and f_br(h,l,o,c)<i_body_std/100 and f_lw(l,o,c)>f_bod(o,c) and c>h[1]
+
+// ii) MARTILLO SELL: cuerpo 50-85%, mecha superior>cuerpo, close<low[1]
+f_hmr_bear(h,l,o,c) =>
+    c<o and f_br(h,l,o,c)>=i_body_hmr/100 and f_br(h,l,o,c)<i_body_std/100 and f_uw(h,o,c)>f_bod(o,c) and c<l[1]
+
+// iii) DOJI BUY: ambas mechas>=15%, simetricas, cuerpo<=50%, close>high[1]
+// Excepcion: mecha inferior (a favor) ~0 => usar estandar
+f_doji_bull(h,l,o,c) =>
+    lr = f_lr(h,l,o,c)
+    if lr < 0.05
+        f_std_bull(h,l,o,c)
+    else
+        tot = f_tot(h,l)
+        sym = tot>0 ? math.abs(f_lw(l,o,c)-f_uw(h,o,c))/tot<=i_doji_sym/100 : false
+        cond = c>o and f_br(h,l,o,c)<=i_doji_max/100 and lr>=0.15 and f_ur(h,l,o,c)>=0.15 and sym and c>h[1]
+        cond
+
+// iii) DOJI SELL: excepcion: mecha superior (a favor) ~0 => usar estandar
+f_doji_bear(h,l,o,c) =>
+    ur = f_ur(h,l,o,c)
+    if ur < 0.05
+        f_std_bear(h,l,o,c)
+    else
+        tot = f_tot(h,l)
+        sym = tot>0 ? math.abs(f_lw(l,o,c)-f_uw(h,o,c))/tot<=i_doji_sym/100 : false
+        cond = c<o and f_br(h,l,o,c)<=i_doji_max/100 and f_lr(h,l,o,c)>=0.15 and ur>=0.15 and sym and c<l[1]
+        cond
+
+// Cualquier envolvente valida (los 3 tipos)
+f_engulf_bull(h,l,o,c) =>
+    f_std_bull(h,l,o,c) or f_hmr_bull(h,l,o,c) or f_doji_bull(h,l,o,c)
+
+f_engulf_bear(h,l,o,c) =>
+    f_std_bear(h,l,o,c) or f_hmr_bear(h,l,o,c) or f_doji_bear(h,l,o,c)
+
+// ══════════════════════════════════════════════════════
+// VELAS DE INDECISION (Patron START)
+// Mismo color que la siguiente vela de entrada
+// Cuerpo <= 50%, mechas pronunciadas (doji o pinbar)
+// ══════════════════════════════════════════════════════
+f_indec(h,l,o,c,bull) =>
+    br    = f_br(h,l,o,c)
+    lw    = f_lw(l,o,c)
+    uw    = f_uw(h,o,c)
+    col   = bull ? c>o : c<o
+    is_dj = br<=i_doji_max/100 and f_lr(h,l,o,c)>0.10 and f_ur(h,l,o,c)>0.10
+    is_pb = br<=i_doji_max/100 and (lw>=uw*2 or uw>=lw*2) and br<i_body_hmr/100
+    col and (is_dj or is_pb)
+
+// ══════════════════════════════════════════════════════
+// PATRON ENVOLVENTE BUY
+// 1+ velas rojas consecutivas (pullback) + envolvente bull
+// La envolvente debe cubrir todo el pullback: high>maxH Y low<minL
+// ══════════════════════════════════════════════════════
+f_pat_env_bull() =>
+    if not f_engulf_bull(high,low,open,close)
+        false
+    else
+        pb=0, mxH=0.0, mnL=999999.0
+        for i=1 to i_pb_max
+            if close[i]<open[i]
+                pb   := pb+1
+                mxH  := math.max(mxH, high[i])
+                mnL  := math.min(mnL, low[i])
+            else
+                break
+        pb>0 and high>mxH and low<mnL
+
+// ══════════════════════════════════════════════════════
+// PATRON ENVOLVENTE SELL
+// 1+ velas verdes consecutivas (pullback) + envolvente bear
+// La envolvente cubre: low<minL Y high>maxH
+// ══════════════════════════════════════════════════════
+f_pat_env_bear() =>
+    if not f_engulf_bear(high,low,open,close)
+        false
+    else
+        pb=0, mxH=0.0, mnL=999999.0
+        for i=1 to i_pb_max
+            if close[i]>open[i]
+                pb   := pb+1
+                mxH  := math.max(mxH, high[i])
+                mnL  := math.min(mnL, low[i])
+            else
+                break
+        pb>0 and low<mnL and high>mxH
+
+// ══════════════════════════════════════════════════════
+// PATRON START BUY (Morning Star)
+// 1+ rojas (pullback) + doji/pinbar VERDE + envolvente verde
+// Invalido si la entrada es la 3ra vela verde consecutiva
+// ══════════════════════════════════════════════════════
+f_pat_start_bull() =>
+    if close>open and close[1]>open[1] and close[2]>open[2]
+        false
+    else if not f_engulf_bull(high,low,open,close)
+        false
+    else if not f_indec(high[1],low[1],open[1],close[1],true)
+        false
+    else
+        has_red=false
+        for i=2 to i_pb_max+1
+            if close[i]<open[i]
+                has_red:=true
+                break
+        has_red
+
+// ══════════════════════════════════════════════════════
+// PATRON START SELL (Evening Star)
+// 1+ verdes (pullback) + doji/pinbar ROJA + envolvente roja
+// Invalido si la entrada es la 3ra vela roja consecutiva
+// ══════════════════════════════════════════════════════
+f_pat_start_bear() =>
+    if close<open and close[1]<open[1] and close[2]<open[2]
+        false
+    else if not f_engulf_bear(high,low,open,close)
+        false
+    else if not f_indec(high[1],low[1],open[1],close[1],false)
+        false
+    else
+        has_grn=false
+        for i=2 to i_pb_max+1
+            if close[i]>open[i]
+                has_grn:=true
+                break
+        has_grn
+
+// ══════════════════════════════════════════════════════
+// ESTRUCTURA M3 — Pivot altos y bajos
+// Alto M3 = vela verde seguida de roja  (pivot high)
+// Bajo M3  = vela roja  seguida de verde (pivot low)
+// ══════════════════════════════════════════════════════
+m3_ph = request.security(syminfo.tickerid,"3",ta.pivothigh(high,i_pivot_len,i_pivot_len),lookahead=barmerge.lookahead_off)
+m3_pl = request.security(syminfo.tickerid,"3",ta.pivotlow(low,i_pivot_len,i_pivot_len),lookahead=barmerge.lookahead_off)
+
+// Ultimos 2 altos y 2 bajos M3 (para validar nivel unico opuesto en MER)
+var float m3h1 = na
+var float m3h2 = na
+var float m3l1 = na
+var float m3l2 = na
+
+if not na(m3_ph)
+    m3h2 := m3h1
+    m3h1 := m3_ph
+
+if not na(m3_pl)
+    m3l2 := m3l1
+    m3l1 := m3_pl
+
+// ══════════════════════════════════════════════════════
+// TENDENCIA M3 Y CAMBIO DE ESTRUCTURA (ChOC)
+// Quiebre valido: cuerpo M1 supera nivel M3 en >= 0.01%
+// Tendencia: quiebres consecutivos misma direccion (linea punteada)
+// ChOC: quiebre en direccion contraria a la tendencia (linea continua)
+// ══════════════════════════════════════════════════════
+min_brk_r = i_min_brk / 100.0
+
+brk_up = not na(m3h1) and close>m3h1 and (close-m3h1)/m3h1 >= min_brk_r
+brk_dn = not na(m3l1) and close<m3l1 and (m3l1-close)/m3l1 >= min_brk_r
+
+var int m3_trend = 0   // 1=alcista  -1=bajista  0=sin tendencia
+
+choc_up   = m3_trend==-1 and brk_up   // bajista → alcista
+choc_down = m3_trend== 1 and brk_dn   // alcista → bajista
+
+if brk_up
+    m3_trend := 1
+if brk_dn
+    m3_trend := -1
+
+// ══════════════════════════════════════════════════════
+// QPC STATE MACHINE — MEC escenario (b)
+// ChOC bar = Quiebre → pullback → primera envolvente que
+// cubre el pullback Y supera el extremo pre-pullback = entrada
+// ══════════════════════════════════════════════════════
+
+// BUY QPC
+var int   qb_st   = 0    // 0=idle 1=post_choc 2=en_pullback
+var float qb_preH = na   // maximo antes del pullback (extremo pre-pullback)
+var float qb_pbMH = na   // max high durante el pullback
+var float qb_pbML = na   // min low  durante el pullback
+
+// SELL QPC
+var int   qs_st   = 0
+var float qs_preL = na   // minimo antes del pullback
+var float qs_pbMH = na
+var float qs_pbML = na
+
+// Reset en ChOC
+if choc_up
+    qb_st   := 1
+    qb_preH := high
+    qb_pbMH := na
+    qb_pbML := na
+    qs_st   := 0   // reset sell QPC al opuesto
+
+if choc_down
+    qs_st   := 1
+    qs_preL := low
+    qs_pbMH := na
+    qs_pbML := na
+    qb_st   := 0   // reset buy QPC al opuesto
+
+// Maquina de estados BUY QPC
+if qb_st==1 and not choc_up
+    if close<open                          // vela roja → comienza pullback
+        qb_st   := 2
+        qb_pbMH := high
+        qb_pbML := low
+    else                                   // vela verde → extender pre-pullback high
+        qb_preH := math.max(qb_preH, high)
+
+if qb_st==2 and close<open               // sigue en pullback rojo
+    qb_pbMH := math.max(qb_pbMH, high)
+    qb_pbML := math.min(qb_pbML, low)
+
+// Maquina de estados SELL QPC
+if qs_st==1 and not choc_down
+    if close>open                          // vela verde → comienza pullback
+        qs_st   := 2
+        qs_pbMH := high
+        qs_pbML := low
+    else                                   // vela roja → extender pre-pullback low
+        qs_preL := math.min(qs_preL, low)
+
+if qs_st==2 and close>open               // sigue en pullback verde
+    qs_pbMH := math.max(qs_pbMH, high)
+    qs_pbML := math.min(qs_pbML, low)
+
+// Señal MEC (b): envolvente que cubre pullback Y supera extremo pre-pullback
+mec_b_bull = in_session and qb_st==2
+     and not na(qb_preH) and not na(qb_pbML)
+     and f_engulf_bull(high,low,open,close)
+     and high > qb_preH                   // supera extremo pre-pullback
+     and low  < qb_pbML                   // cubre min del pullback
+
+mec_b_bear = in_session and qs_st==2
+     and not na(qs_preL) and not na(qs_pbMH)
+     and f_engulf_bear(high,low,open,close)
+     and low  < qs_preL                   // supera extremo pre-pullback
+     and high > qs_pbMH                   // cubre max del pullback
+
+// Reset QPC despues de senal (evita doble entrada en mismo QPC)
+if mec_b_bull
+    qb_st := 0
+if mec_b_bear
+    qs_st := 0
+
+// ══════════════════════════════════════════════════════
+// MEC ESCENARIO (a) — Tendencia activa
+// Tendencia M3 establecida + patron en M1 (Envolvente o START)
+// ══════════════════════════════════════════════════════
+mec_a_bull = in_session and m3_trend== 1 and (f_pat_env_bull() or f_pat_start_bull())
+mec_a_bear = in_session and m3_trend==-1 and (f_pat_env_bear() or f_pat_start_bear())
+
+// ══════════════════════════════════════════════════════
+// MER — Modelo Entrada Retroceso
+// Requiere: ChOC valido (>= 0.01%) + PRIMER toque del nivel
+// ChOC + envolvente en ese toque + un solo nivel M3 opuesto
+// ══════════════════════════════════════════════════════
+
+// Nivel del ChOC guardado para detectar el primer toque
+var float mer_lvl_bull = na    // alto M3 roto en choc_up
+var float mer_lvl_bear = na    // bajo M3 roto en choc_down
+var bool  mer_used_bull = false  // primer toque ya consumido
+var bool  mer_used_bear = false
+var bool  mer_valid_bull = false  // ChOC fue >= 0.01% (ya garantizado por brk_up)
+var bool  mer_valid_bear = false
+
+if choc_up
+    mer_lvl_bull   := m3h1
+    mer_used_bull  := false
+    mer_valid_bull := true
+    // Invalidar MER contrario
+    mer_valid_bear := false
+    mer_used_bear  := false
+
+if choc_down
+    mer_lvl_bear   := m3l1
+    mer_used_bear  := false
+    mer_valid_bear := true
+    mer_valid_bull := false
+    mer_used_bull  := false
+
+// Regla: solo 1 nivel M3 opuesto a la entrada (donde va el SL)
+// BUY: SL en m3l1 → si hay m3l2 y distancia > 0.01% → invalido
+one_low_ok  = na(m3l2) or (not na(m3l1) and math.abs(m3l1-m3l2)/m3l1 <= 0.0001)
+one_high_ok = na(m3h2) or (not na(m3h1) and math.abs(m3h1-m3h2)/m3h1 <= 0.0001)
+
+// Primer toque del nivel ChOC
+mer_touch_bull = mer_valid_bull and not mer_used_bull
+                 and not na(mer_lvl_bull)
+                 and low <= mer_lvl_bull * 1.0005
+
+mer_touch_bear = mer_valid_bear and not mer_used_bear
+                 and not na(mer_lvl_bear)
+                 and high >= mer_lvl_bear * 0.9995
+
+// Marcar como consumido en el primer toque (aunque no sea envolvente)
+if mer_touch_bull
+    mer_used_bull := true
+if mer_touch_bear
+    mer_used_bear := true
+
+// Señal MER: primer toque + envolvente valida + nivel unico opuesto
+mer_bull = in_session and mer_touch_bull
+           and f_engulf_bull(high,low,open,close)
+           and one_low_ok
+
+mer_bear = in_session and mer_touch_bear
+           and f_engulf_bear(high,low,open,close)
+           and one_high_ok
+
+// ══════════════════════════════════════════════════════
+// SEÑALES FINALES
+// ══════════════════════════════════════════════════════
+raw_bull = (mec_a_bull or mec_b_bull or mer_bull) and strategy.position_size==0
+raw_bear = (mec_a_bear or mec_b_bear or mer_bear) and strategy.position_size==0
+
+// ══════════════════════════════════════════════════════
+// LIMITES DIARIOS
+// 1 TP  → parar | 2 SL → parar | 1SL+1TP → cubierto por 1TP
+// ══════════════════════════════════════════════════════
+var int day_sl        = 0
+var int day_tp        = 0
+var int last_day      = na
+var int last_tr_cnt   = 0
+
+curr_day = dayofmonth(time)
+
+if curr_day != last_day
+    day_sl      := 0
+    day_tp      := 0
+    last_tr_cnt := strategy.closedtrades
+    last_day    := curr_day
+
+if strategy.closedtrades > last_tr_cnt
+    for i = last_tr_cnt to strategy.closedtrades-1
+        if strategy.closedtrades.profit(i) >= 0
+            day_tp := day_tp+1
+        else
+            day_sl := day_sl+1
+    last_tr_cnt := strategy.closedtrades
+
+can_trade = day_tp==0 and day_sl<2
+
+sig_bull = raw_bull and can_trade
+sig_bear = raw_bear and can_trade
+
+// ══════════════════════════════════════════════════════
+// STOP LOSS Y TAKE PROFIT
+// SL BUY  = ultimo bajo M3 (m3l1)
+// SL SELL = ultimo alto M3 (m3h1)
+// Si distancia > 20.000 pips → reducir 40% (quedar con 60%)
+// TP = distancia SL × RR 0.9
+// 1 pip XAUUSD OANDA = 0.01 (syminfo.mintick)
+// ══════════════════════════════════════════════════════
+pip = syminfo.mintick
+
+f_sl_bull() =>
+    sl_r  = not na(m3l1) ? m3l1 : close - 300*pip
+    dist  = (close - sl_r) / pip
+    dist > i_max_sl_pp ? close - i_max_sl_pp*(1-i_sl_red/100)*pip : sl_r
+
+f_sl_bear() =>
+    sl_r  = not na(m3h1) ? m3h1 : close + 300*pip
+    dist  = (sl_r - close) / pip
+    dist > i_max_sl_pp ? close + i_max_sl_pp*(1-i_sl_red/100)*pip : sl_r
+
+// ══════════════════════════════════════════════════════
+// EJECUCION DE ORDENES
+// ══════════════════════════════════════════════════════
+
+// HEDGE: cerrar posicion contraria antes de abrir
+if strategy.position_size > 0 and raw_bear and can_trade
+    strategy.close("BUY", comment="HEDGE")
+if strategy.position_size < 0 and raw_bull and can_trade
+    strategy.close("SELL", comment="HEDGE")
+
+// Entrada BUY
+if sig_bull
+    sl = f_sl_bull()
+    sl := math.min(sl, close - pip*5)
+    tp = close + (close-sl)*i_rr
+    lbl = mec_a_bull?"MEC-A": mec_b_bull?"MEC-B":"MER"
+    strategy.entry("BUY",  strategy.long,  comment=lbl)
+    strategy.exit("BUY_X","BUY",  stop=sl, limit=tp,
+                  comment_loss="SL", comment_profit="TP")
+
+// Entrada SELL
+if sig_bear
+    sl = f_sl_bear()
+    sl := math.max(sl, close + pip*5)
+    tp = close - (sl-close)*i_rr
+    lbl = mec_a_bear?"MEC-A": mec_b_bear?"MEC-B":"MER"
+    strategy.entry("SELL", strategy.short, comment=lbl)
+    strategy.exit("SELL_X","SELL", stop=sl, limit=tp,
+                  comment_loss="SL", comment_profit="TP")
+
+// ══════════════════════════════════════════════════════
+// VISUALIZACION
+// ══════════════════════════════════════════════════════
+
+// Fondo sesion operativa
+bgcolor(i_show_sess and in_session ? color.new(color.blue,92) : na, title="Sesion")
+
+// ── Niveles M3 (lineas punteadas) ──────────────────────
+// Alto M3 = linea punteada roja   | extiende 8 M3 bars ≈ 24 M1 bars
+// Bajo M3  = linea punteada verde
+if i_show_m3 and barstate.isconfirmed
+    if not na(m3_ph)
+        line.new(bar_index, m3_ph, bar_index+24, m3_ph,
+                 color=color.new(color.red,20), style=line.style_dotted, width=2)
+    if not na(m3_pl)
+        line.new(bar_index, m3_pl, bar_index+24, m3_pl,
+                 color=color.new(color.teal,20), style=line.style_dotted, width=2)
+
+// ── ChOC: lineas continuas (8 M1 bars) ─────────────────
+if i_show_choc and barstate.isconfirmed
+    if choc_up
+        line.new(bar_index, m3h1, bar_index+8, m3h1,
+                 color=color.new(color.lime,30), style=line.style_solid, width=2)
+        label.new(bar_index, m3h1, "ChOC",
+                  style=label.style_label_down, size=size.tiny,
+                  color=color.new(color.lime,50), textcolor=color.white)
+    if choc_down
+        line.new(bar_index, m3l1, bar_index+8, m3l1,
+                 color=color.new(color.red,30), style=line.style_solid, width=2)
+        label.new(bar_index, m3l1, "ChOC",
+                  style=label.style_label_up, size=size.tiny,
+                  color=color.new(color.red,50), textcolor=color.white)
+
+// ── Etiquetas BUY / SELL ───────────────────────────────
+// Fondo gris claro, texto blanco mayusculas
+// BUY debajo de la vela | SELL encima de la vela
+if i_show_sig and barstate.isconfirmed
+    if sig_bull
+        label.new(bar_index, low, "BUY",
+                  style=label.style_label_up,
+                  color=color.new(color.gray,25),
+                  textcolor=color.white, size=size.normal)
+    if sig_bear
+        label.new(bar_index, high, "SELL",
+                  style=label.style_label_down,
+                  color=color.new(color.gray,25),
+                  textcolor=color.white, size=size.normal)
+
+// Triangulos para el Strategy Tester
+plotshape(sig_bull, title="BUY",  style=shape.triangleup,   location=location.belowbar, color=color.new(color.lime,30), size=size.small)
+plotshape(sig_bear, title="SELL", style=shape.triangledown, location=location.abovebar, color=color.new(color.red,30),  size=size.small)
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════
+var table d = table.new(position.top_right, 2, 9,
+              bgcolor=color.new(color.black,60),
+              border_color=color.new(color.gray,40), border_width=1,
+              frame_color=color.new(color.gray,20),  frame_width=1)
+
+if i_show_dash and barstate.islast
+    // Header
+    table.cell(d,0,0,"XAU/USD Scalping", text_color=color.white,
+               bgcolor=color.new(color.navy,10), text_size=size.small)
+    table.cell(d,1,0,"M1 + M3", text_color=color.silver,
+               bgcolor=color.new(color.navy,10), text_size=size.small)
+
+    // Tendencia M3
+    tc = m3_trend==1 ? color.lime : m3_trend==-1 ? color.red : color.gray
+    tt = m3_trend==1 ? "ALCISTA  ▲" : m3_trend==-1 ? "BAJISTA  ▼" : "NEUTRAL"
+    table.cell(d,0,1,"M3 Tendencia", text_color=color.silver, text_size=size.small)
+    table.cell(d,1,1,tt, text_color=tc, text_size=size.small)
+
+    // Sesion
+    sc = in_session ? color.lime : color.gray
+    table.cell(d,0,2,"Sesion NY",   text_color=color.silver, text_size=size.small)
+    table.cell(d,1,2,in_session?"ACTIVA":"CERRADA", text_color=sc, text_size=size.small)
+
+    // SL del dia
+    slc = day_sl>=2 ? color.red : day_sl==1 ? color.yellow : color.lime
+    table.cell(d,0,3,"SL hoy", text_color=color.silver, text_size=size.small)
+    table.cell(d,1,3,str.tostring(day_sl)+" / 2", text_color=slc, text_size=size.small)
+
+    // TP del dia
+    tpc = day_tp>=1 ? color.red : color.lime
+    table.cell(d,0,4,"TP hoy", text_color=color.silver, text_size=size.small)
+    table.cell(d,1,4,str.tostring(day_tp)+" / 1", text_color=tpc, text_size=size.small)
+
+    // Puede operar
+    ctc = can_trade ? color.lime : color.red
+    table.cell(d,0,5,"Opera hoy", text_color=color.silver, text_size=size.small)
+    table.cell(d,1,5,can_trade?"SI  ✓":"NO  ✗", text_color=ctc, text_size=size.small)
+
+    // Posicion actual
+    pc = strategy.position_size>0 ? color.lime : strategy.position_size<0 ? color.red : color.gray
+    pt = strategy.position_size>0 ? "LONG  ▲" : strategy.position_size<0 ? "SHORT ▼" : "FLAT"
+    table.cell(d,0,6,"Posicion", text_color=color.silver, text_size=size.small)
+    table.cell(d,1,6,pt, text_color=pc, text_size=size.small)
+
+    // Niveles M3 activos
+    ht = not na(m3h1) ? str.tostring(m3h1,"#.##") : "—"
+    lt = not na(m3l1) ? str.tostring(m3l1,"#.##") : "—"
+    table.cell(d,0,7,"Alto M3", text_color=color.red,  text_size=size.small)
+    table.cell(d,1,7,ht,         text_color=color.white, text_size=size.small)
+    table.cell(d,0,8,"Bajo M3", text_color=color.teal, text_size=size.small)
+    table.cell(d,1,8,lt,         text_color=color.white, text_size=size.small)
+
+// ══════════════════════════════════════════════════════
+// ALERTAS
+// ══════════════════════════════════════════════════════
+alertcondition(sig_bull,  "XAU BUY",       "XAUUSD | COMPRA | {{close}}")
+alertcondition(sig_bear,  "XAU SELL",      "XAUUSD | VENTA  | {{close}}")
+alertcondition(choc_up,   "ChOC Alcista",  "XAUUSD | ChOC ALCISTA | {{close}}")
+alertcondition(choc_down, "ChOC Bajista",  "XAUUSD | ChOC BAJISTA | {{close}}")
+alertcondition(not can_trade and in_session, "Limite Diario",
+               "XAUUSD | LIMITE DIARIO — no operar mas hoy")

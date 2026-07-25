@@ -1,0 +1,112 @@
+{
+  "run_date": "2026-07-14T11:15:44.849994",
+  "metrics": {
+    "total": 11,
+    "tp": 5,
+    "sl": 6,
+    "win_rate": 45.5,
+    "total_r": -1.5,
+    "r_per_week": -0.5,
+    "weeks": 3,
+    "by_type": {
+      "ENV": {
+        "tp": 3,
+        "sl": 2
+      },
+      "START": {
+        "tp": 2,
+        "sl": 4
+      }
+    }
+  },
+  "trades": [
+    {
+      "dir": "SELL",
+      "entry": 4209.5,
+      "exit": 4204.81982421875,
+      "result": "TP",
+      "type": "ENV",
+      "date": "2026-06-22"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4132.2001953125,
+      "exit": 4132.2998046875,
+      "result": "SL",
+      "type": "START",
+      "date": "2026-06-23"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4140.2998046875,
+      "exit": 4151.459716796875,
+      "result": "TP",
+      "type": "ENV",
+      "date": "2026-06-23"
+    },
+    {
+      "dir": "SELL",
+      "entry": 3984.699951171875,
+      "exit": 4011.10009765625,
+      "result": "SL",
+      "type": "START",
+      "date": "2026-06-24"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4049.89990234375,
+      "exit": 4049.94990234375,
+      "result": "SL",
+      "type": "START",
+      "date": "2026-06-24"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4043.199951171875,
+      "exit": 4044.999951171875,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-06-25"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4094.89990234375,
+      "exit": 4105.609814453125,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-06-26"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4061.800048828125,
+      "exit": 4061.850048828125,
+      "result": "SL",
+      "type": "START",
+      "date": "2026-06-29"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4063.60009765625,
+      "exit": 4056.39990234375,
+      "result": "SL",
+      "type": "ENV",
+      "date": "2026-06-29"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4069.699951171875,
+      "exit": 4070.39990234375,
+      "result": "SL",
+      "type": "ENV",
+      "date": "2026-07-13"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4088.60009765625,
+      "exit": 4093.3701416015624,
+      "result": "TP",
+      "type": "ENV",
+      "date": "2026-07-14"
+    }
+  ]
+}

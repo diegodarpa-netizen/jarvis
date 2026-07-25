@@ -1,0 +1,184 @@
+{
+  "run_date": "2026-06-07T17:11:45.810098",
+  "metrics": {
+    "total": 20,
+    "tp": 14,
+    "sl": 6,
+    "win_rate": 70.0,
+    "total_r": 6.6,
+    "r_per_week": 1.65,
+    "weeks": 4,
+    "by_type": {
+      "START": {
+        "tp": 12,
+        "sl": 2
+      },
+      "ENV": {
+        "tp": 2,
+        "sl": 4
+      }
+    }
+  },
+  "trades": [
+    {
+      "dir": "SELL",
+      "entry": 4709.0,
+      "exit": 4703.41982421875,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-14"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4561.7998046875,
+      "exit": 4556.0,
+      "result": "SL",
+      "type": "ENV",
+      "date": "2026-05-15"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4550.2001953125,
+      "exit": 4561.60009765625,
+      "result": "SL",
+      "type": "START",
+      "date": "2026-05-15"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4581.10009765625,
+      "exit": 4570.89990234375,
+      "result": "SL",
+      "type": "ENV",
+      "date": "2026-05-18"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4562.0,
+      "exit": 4550.840087890625,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-18"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4524.39990234375,
+      "exit": 4505.679638671875,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-19"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4499.5,
+      "exit": 4506.89990234375,
+      "result": "SL",
+      "type": "START",
+      "date": "2026-05-20"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4509.10009765625,
+      "exit": 4509.14509765625,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-21"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4525.5,
+      "exit": 4530.45,
+      "result": "TP",
+      "type": "ENV",
+      "date": "2026-05-22"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4524.7001953125,
+      "exit": 4501.2001953125,
+      "result": "SL",
+      "type": "ENV",
+      "date": "2026-05-26"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4462.7998046875,
+      "exit": 4449.659716796875,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-27"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4461.0,
+      "exit": 4471.259912109375,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-28"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4554.2998046875,
+      "exit": 4556.81962890625,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-29"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4559.0,
+      "exit": 4565.75,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-05-29"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4496.7998046875,
+      "exit": 4476.729541015625,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-06-01"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4549.7001953125,
+      "exit": 4543.310546875,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-06-02"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4478.39990234375,
+      "exit": 4481.729638671875,
+      "result": "TP",
+      "type": "ENV",
+      "date": "2026-06-03"
+    },
+    {
+      "dir": "BUY",
+      "entry": 4537.5,
+      "exit": 4526.89990234375,
+      "result": "SL",
+      "type": "ENV",
+      "date": "2026-06-04"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4513.0,
+      "exit": 4505.259912109375,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-06-04"
+    },
+    {
+      "dir": "SELL",
+      "entry": 4441.7001953125,
+      "exit": 4412.090283203125,
+      "result": "TP",
+      "type": "START",
+      "date": "2026-06-05"
+    }
+  ]
+}

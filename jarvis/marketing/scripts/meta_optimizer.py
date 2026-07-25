@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 import anthropic
 
+from web_research import web_search_query
+
 CONFIG_PATH = Path(__file__).parent.parent / "data" / "config.json"
 KNOWLEDGE_PATH = Path(__file__).parent.parent / "data" / "knowledge_base.json"
 REPORTS_PATH = Path(__file__).parent.parent / "reports"
@@ -49,16 +51,8 @@ def generate_meta_strategy():
 
     for query in analysis_queries:
         print(f"  → Analizando: {query[:55]}...")
-        response = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=1500,
-            system="""Eres un experto certificado en Meta Ads (Facebook e Instagram) especializado en el sector médico-estético.
-Has gestionado cuentas de clínicas de cirugía plástica en Argentina y Latinoamérica con presupuestos de $500 a $50.000 USD/mes.
-Conoces en detalle las políticas de publicidad de Meta para contenido médico y cómo trabajar dentro de esas restricciones.
-Siempre das recomendaciones ultra-específicas con números, porcentajes y configuraciones exactas.""",
-            messages=[{
-                "role": "user",
-                "content": f"""Dame estrategia detallada sobre: {query}
+        strategy_text = web_search_query(
+            query=f"""Buscá información real y actualizada, y luego dame estrategia detallada sobre: {query}
 
 Contexto específico:
 - Ubicación: {', '.join(geo)}
@@ -68,14 +62,19 @@ Contexto específico:
 - Plataforma primaria: Instagram
 
 Necesito configuraciones exactas, no generalidades.
-"""
-            }]
+""",
+            system="""Eres un experto certificado en Meta Ads (Facebook e Instagram) especializado en el sector médico-estético.
+Has gestionado cuentas de clínicas de cirugía plástica en Argentina y Latinoamérica con presupuestos de $500 a $50.000 USD/mes.
+Conoces en detalle las políticas de publicidad de Meta para contenido médico y cómo trabajar dentro de esas restricciones.
+Usá la herramienta de búsqueda web para verificar benchmarks y políticas vigentes antes de responder — no respondas de memoria.
+Siempre das recomendaciones ultra-específicas con números, porcentajes y configuraciones exactas.""",
+            max_tokens=1500,
         )
 
         strategies.append({
             "topic": query[:60],
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "strategy": response.content[0].text
+            "strategy": strategy_text
         })
 
     # Generate full Meta campaign blueprint

@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 import anthropic
 
+from web_research import web_search_query
+
 CONFIG_PATH = Path(__file__).parent.parent / "data" / "config.json"
 KNOWLEDGE_PATH = Path(__file__).parent.parent / "data" / "knowledge_base.json"
 REPORTS_PATH = Path(__file__).parent.parent / "reports"
@@ -49,18 +51,15 @@ def generate_daily_briefing():
     daily_insights = []
     for query in daily_queries:
         print(f"  → {query[:55]}...")
-        response = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=800,
+        insight = web_search_query(
+            query=f"Buscá información real y actual sobre: {query}\nDame 2-3 puntos clave con su implicancia práctica para una clínica de Buenos Aires, citando qué encontraste.",
             system="""Eres el analista de marketing de una clínica de cirugía plástica en Buenos Aires.
 Cada mañana preparas un briefing ejecutivo con la información más relevante del mercado.
+Usá la herramienta de búsqueda web para verificar datos reales y actuales antes de responder — no respondas de memoria.
 Eres directo, práctico y siempre terminas cada punto con una implicancia accionable para hoy.""",
-            messages=[{
-                "role": "user",
-                "content": f"Analiza brevemente: {query}\nDame 2-3 puntos clave con su implicancia práctica para una clínica de Buenos Aires."
-            }]
+            max_tokens=800,
         )
-        daily_insights.append(response.content[0].text)
+        daily_insights.append(insight)
 
     # Generate the full daily briefing
     print("\n📋 Compilando briefing completo...")

@@ -1,0 +1,383 @@
+//@version=5
+strategy("XAU En Vivo v2", shorttitle="XAU VIVO v2", overlay=true,
+         default_qty_type=strategy.percent_of_equity, default_qty_value=1,
+         initial_capital=10000, currency=currency.USD,
+         commission_type=strategy.commission.cash_per_contract, commission_value=0,
+         slippage=0, calc_on_every_tick=false, max_bars_back=500, max_lines_count=500)
+
+// ══════════════════════════════════════════════════════════════
+// XAU EN VIVO v2 — Sesión 10/06/2026
+//
+// REGLAS CONFIRMADAS EN REPLAY VELA A VELA:
+//
+// CONTEXTO: M3 ALCISTA → buscar BUY en M1
+//
+// PATRÓN ENVOLVENTE MARTILLO (entrada principal):
+//   [2] vela alcista  → swing high antes del retroceso
+//   [1] vela bajista/doji → retroceso (body ≤ 35%)
+//   [0] vela de entrada:
+//       • body ≥ 50% del rango total
+//       • HIGH[0] > HIGH[2] (rompe el punto más alto antes del retroceso)
+//       • alcista (close > open)
+//       • volumen > 0.01%
+//
+// REGLA SL: si dist > 20 pips → reducir 40% (usar 60%)
+// REGLA TP: dist_sl × 0.9
+//
+// FIX CLAVE: usar M3 actual en formación (lookahead_on) para dirección
+// durante el impulso, antes de que el M3 anterior confirme el ChOC
+// ══════════════════════════════════════════════════════════════
+
+// ── INPUTS ──────────────────────────────────────────────────
+min_gb_pts  = input.float(10.0, "Mín pts Gray Box",          group="Config", step=0.5)
+pb_tol      = input.float(3.0,  "Tolerancia pullback (pts)", group="Config", step=0.5)
+line_len    = input.int(50,     "Longitud líneas",            group="Config", minval=10)
+no_news     = input.bool(false, "⛔ Día noticia roja",        group="Config")
+sl_max_pips = input.float(20.0, "SL máx sin reducir (pips)", group="Config", step=0.5,
+     tooltip="Si dist SL > 20 pips → reducir 40%. Regla Fabian 10/06/2026")
+
+// ── SESIÓN ───────────────────────────────────────────────────
+// Sin límite de horario — opera todo el día
+in_session = true
+news_win   = not na(time("1", "0820-0833", "America/New_York"))
+news_block = no_news or news_win
+bgcolor(color.new(color.blue, 93))
+
+// ── DATOS M3 ─────────────────────────────────────────────────
+// Barras M3 cerradas (sin lookahead)
+m3_c1 = request.security(syminfo.tickerid, "3", close[1], lookahead=barmerge.lookahead_off)
+m3_o1 = request.security(syminfo.tickerid, "3", open[1],  lookahead=barmerge.lookahead_off)
+m3_h1 = request.security(syminfo.tickerid, "3", high[1],  lookahead=barmerge.lookahead_off)
+m3_l1 = request.security(syminfo.tickerid, "3", low[1],   lookahead=barmerge.lookahead_off)
+m3_c2 = request.security(syminfo.tickerid, "3", close[2], lookahead=barmerge.lookahead_off)
+m3_o2 = request.security(syminfo.tickerid, "3", open[2],  lookahead=barmerge.lookahead_off)
+m3_h2 = request.security(syminfo.tickerid, "3", high[2],  lookahead=barmerge.lookahead_off)
+
+// Dirección M3 último bar cerrado
+m3_dir = m3_c1 > m3_o1 ? 1 : m3_c1 < m3_o1 ? -1 : 0
+
+// Dirección M3 bar ACTUAL en formación (lookahead_on)
+// CLAVE: durante el impulso alcista, el M3 actual ya sube aunque el cerrado aún diga bajista
+m3_c0_live = request.security(syminfo.tickerid, "3", close, lookahead=barmerge.lookahead_on)
+m3_o0_live = request.security(syminfo.tickerid, "3", open,  lookahead=barmerge.lookahead_on)
+m3_dir_live = m3_c0_live > m3_o0_live ? 1 : m3_c0_live < m3_o0_live ? -1 : 0
+
+// ── PIVOT M3 ─────────────────────────────────────────────────
+// Pivot ALTO → setup SELL: bar[2] alcista + bar[1] bajista
+m3_piv_h = request.security(syminfo.tickerid, "3",
+     close[2] > open[2] and close[1] < open[1] ? math.max(high[1], high[2]) : na,
+     lookahead=barmerge.lookahead_off)
+m3_piv_l_sell = request.security(syminfo.tickerid, "3",
+     close[2] > open[2] and close[1] < open[1] ? low[2] : na,
+     lookahead=barmerge.lookahead_off)
+
+// Pivot BAJO → setup BUY: bar[2] bajista + bar[1] alcista
+m3_piv_l = request.security(syminfo.tickerid, "3",
+     close[2] < open[2] and close[1] > open[1] ? math.min(low[1], low[2]) : na,
+     lookahead=barmerge.lookahead_off)
+m3_piv_h_buy = request.security(syminfo.tickerid, "3",
+     close[2] < open[2] and close[1] > open[1] ? high[2] : na,
+     lookahead=barmerge.lookahead_off)
+
+piv_sell_valid = not na(m3_piv_h)     and not na(m3_piv_l_sell) and (m3_piv_h - m3_piv_l_sell) >= min_gb_pts
+piv_buy_valid  = not na(m3_piv_h_buy) and not na(m3_piv_l)      and (m3_piv_h_buy - m3_piv_l) >= min_gb_pts
+
+// ── GRAY BOX DINÁMICO ────────────────────────────────────────
+// Se actualiza con CADA nuevo pivot M3 durante la sesión
+var float gb_high  = na
+var float gb_low   = na
+var int   gb_dir   = 0
+var bool  gb_ready = false
+
+if dayofweek != dayofweek[1]
+    gb_high  := na
+    gb_low   := na
+    gb_dir   := 0
+    gb_ready := false
+
+if in_session
+    if piv_sell_valid
+        gb_high  := m3_piv_h
+        gb_low   := m3_piv_l_sell
+        gb_dir   := 1
+        gb_ready := true
+    else if piv_buy_valid
+        gb_high  := m3_piv_h_buy
+        gb_low   := m3_piv_l
+        gb_dir   := -1
+        gb_ready := true
+
+// ── CHOC M3 DINÁMICO ─────────────────────────────────────────
+// Puede flipear BAJISTA ↔ ALCISTA durante la sesión
+var int  choc_dir   = 0
+var bool choc_fresh = false
+choc_fresh := false
+
+if in_session and gb_ready
+    if m3_c1 < gb_low  and choc_dir != -1
+        choc_dir   := -1
+        choc_fresh := true
+    if m3_c1 > gb_high and choc_dir != 1
+        choc_dir   := 1
+        choc_fresh := true
+
+if in_session and gb_ready
+    if choc_dir == -1 and close > gb_high
+        choc_dir := 0
+    if choc_dir ==  1 and close < gb_low
+        choc_dir := 0
+
+if dayofweek != dayofweek[1]
+    choc_dir   := 0
+    choc_fresh := false
+
+// Dirección efectiva:
+// Para ENV/START/CONTACTO: ChOC formal → M3 cerrado
+// Para Envolvente Martillo: ChOC formal → M3 ACTUAL (live) → M3 cerrado
+eff_dir    = choc_dir != 0 ? choc_dir : m3_dir
+eff_dir_em = choc_dir != 0 ? choc_dir : m3_dir_live != 0 ? m3_dir_live : m3_dir
+
+// ── ZONA DE PULLBACK ─────────────────────────────────────────
+in_pb_sell = eff_dir == -1 and not na(gb_low)  and
+     high >= gb_low  - pb_tol and low <= gb_low  + pb_tol * 3
+
+in_pb_buy  = eff_dir ==  1 and not na(gb_high) and
+     low  <= gb_high + pb_tol and high >= gb_high - pb_tol * 3
+
+// ── HELPERS ──────────────────────────────────────────────────
+body_ratio(c, o, h, l) => (h - l) > 0 ? math.abs(c - o) / (h - l) : 0.0
+
+f_bear(c0, o0, c1, o1) =>
+    body0 = math.abs(c0 - o0)
+    body1 = math.abs(c1 - o1)
+    c0 < o0 and c1 > o1 and o0 >= c1 and c0 <= o1 and body0 >= body1 * 0.8
+
+f_bull(c0, o0, c1, o1) =>
+    body0 = math.abs(c0 - o0)
+    body1 = math.abs(c1 - o1)
+    c0 > o0 and c1 < o1 and o0 <= c1 and c0 >= o1 and body0 >= body1 * 0.8
+
+// ── PATRÓN A: Primera vela de contacto ───────────────────────
+contact_sell = in_pb_sell and high >= gb_low - pb_tol and close < gb_low and close < open
+contact_buy  = in_pb_buy  and low  <= gb_high + pb_tol and close > gb_high and close > open
+
+// ── PATRÓN B: Envolvente clásica (ENV) ───────────────────────
+env_sell = in_session and in_session[1] and in_pb_sell and
+     close[1] > open[1] and close < open and f_bear(close, open, close[1], open[1])
+
+env_buy  = in_session and in_session[1] and in_pb_buy  and
+     close[1] < open[1] and close > open and f_bull(close, open, close[1], open[1])
+
+// ── PATRÓN C: START ───────────────────────────────────────────
+indecision = body_ratio(close[1], open[1], high[1], low[1]) <= 0.5
+
+start_sell = in_session and in_session[1] and in_session[2] and in_pb_sell and
+     close[2] > open[2] and indecision and
+     close < open and f_bear(close, open, close[2], open[2])
+
+start_buy  = in_session and in_session[1] and in_session[2] and in_pb_buy  and
+     close[2] < open[2] and indecision and
+     close > open and f_bull(close, open, close[2], open[2])
+
+// ── PATRÓN D: Envolvente Martillo ────────────────────────────
+// Confirmado en replay vela a vela — 10/06/2026
+//
+// [2] alcista  = swing high antes del retroceso  (close[2] > open[2])
+// [1] bajista/doji = retroceso                   (body[1] ≤ 35% o close[1] < open[1])
+// [0] envolvente martillo = entrada:
+//     • body[0] ≥ 50% del rango total
+//     • high[0] > high[2]  ← rompe punto más alto antes del retroceso
+//     • close[0] > open[0] (alcista)
+//     • dirección M3 actual alcista (eff_dir_em)
+//
+// Para SELL: espejo inverso
+
+// Retroceso en [1]
+retroceso_bull = close[1] < open[1] or body_ratio(close[1], open[1], high[1], low[1]) <= 0.35
+retroceso_bear = close[1] > open[1] or body_ratio(close[1], open[1], high[1], low[1]) <= 0.35
+
+// Body de la vela [0]
+em_body = body_ratio(close, open, high, low)
+
+// BUY Envolvente Martillo
+em_buy = in_session and in_session[1] and in_session[2] and
+     eff_dir_em == 1 and              // M3 alcista (actual o cerrado)
+     close[2] > open[2] and          // [2] alcista = el swing high
+     high[2] > high[1] and           // [2] es el máximo, [1] bajó de ahí
+     retroceso_bull and              // [1] es retroceso bajista o doji
+     close[1] < high[2] and          // [1] no superó el high de [2]
+     em_body >= 0.50 and             // body ≥ 50% (envolvente o martillo)
+     high > high[2] and              // rompe el punto más alto antes del retroceso
+     close > open and                // alcista
+     not news_block
+
+// SELL Envolvente Martillo
+em_sell = in_session and in_session[1] and in_session[2] and
+     eff_dir_em == -1 and            // M3 bajista
+     close[2] < open[2] and          // [2] bajista = el swing low
+     low[2] < low[1] and             // [2] es el mínimo, [1] subió de ahí
+     retroceso_bear and              // [1] es retroceso alcista o doji
+     close[1] > low[2] and           // [1] no bajó del low de [2]
+     em_body >= 0.50 and             // body ≥ 50%
+     low < low[2] and                // rompe el punto más bajo antes del retroceso
+     close < open and                // bajista
+     not news_block
+
+// ── SEÑALES FINALES ──────────────────────────────────────────
+// Jerarquía: E.MARTILLO → CONTACTO → ENV → START
+sig_sell = (em_sell or contact_sell or env_sell or start_sell) and
+     strategy.position_size == 0 and not news_block
+
+sig_buy  = (em_buy  or contact_buy  or env_buy  or start_buy)  and
+     strategy.position_size == 0 and not news_block
+
+pat_sell = em_sell ? "E.MARTILLO" : contact_sell ? "CONTACTO" : start_sell ? "START" : "ENV"
+pat_buy  = em_buy  ? "E.MARTILLO" : contact_buy  ? "CONTACTO" : start_buy  ? "START" : "ENV"
+
+// ── EJECUCIÓN ────────────────────────────────────────────────
+if sig_sell
+    strategy.entry("SELL", strategy.short, comment="▼ " + pat_sell)
+    label.new(bar_index, high + syminfo.mintick * 3, "▼ " + pat_sell,
+         color=color.red, textcolor=color.white, style=label.style_label_down, size=size.small)
+
+if sig_buy
+    strategy.entry("BUY", strategy.long, comment="▲ " + pat_buy)
+    label.new(bar_index, low - syminfo.mintick * 3, "▲ " + pat_buy,
+         color=color.lime, textcolor=color.black, style=label.style_label_up, size=size.small)
+
+// ── TP / SL CON REDUCCIÓN (REGLA FABIAN) ─────────────────────
+exec_short = strategy.position_size < 0 and strategy.position_size[1] == 0
+exec_long  = strategy.position_size > 0 and strategy.position_size[1] == 0
+
+if exec_short
+    ep         = strategy.position_avg_price
+    sl_raw     = not na(gb_high) ? gb_high : ep + 200 * syminfo.mintick
+    sl_raw    := math.max(sl_raw, ep + syminfo.mintick * 5)
+    dist_raw   = sl_raw - ep
+    dist_final = dist_raw > sl_max_pips ? dist_raw * 0.60 : dist_raw
+    sl_p       = ep + dist_final
+    tp_p       = ep - dist_final * 0.9
+    strategy.exit("SX", "SELL", stop=sl_p, limit=tp_p,
+         comment_loss="SL", comment_profit="TP")
+
+if exec_long
+    ep         = strategy.position_avg_price
+    sl_raw     = not na(gb_low) ? gb_low : ep - 200 * syminfo.mintick
+    sl_raw    := math.min(sl_raw, ep - syminfo.mintick * 5)
+    dist_raw   = ep - sl_raw
+    dist_final = dist_raw > sl_max_pips ? dist_raw * 0.60 : dist_raw
+    sl_p       = ep - dist_final
+    tp_p       = ep + dist_final * 0.9
+    strategy.exit("BX", "BUY", stop=sl_p, limit=tp_p,
+         comment_loss="SL", comment_profit="TP")
+
+// ── CONTADORES DIARIOS ───────────────────────────────────────
+var int tp_hoy = 0
+var int sl_hoy = 0
+
+if dayofweek != dayofweek[1]
+    tp_hoy := 0
+    sl_hoy := 0
+
+if strategy.closedtrades > strategy.closedtrades[1]
+    last_profit = strategy.closedtrades.profit(strategy.closedtrades - 1)
+    if last_profit > 0
+        tp_hoy += 1
+    else
+        sl_hoy += 1
+
+// ── VISUAL ───────────────────────────────────────────────────
+var line l_gb_h = na
+var line l_gb_l = na
+var line l_choc = na
+
+if gb_ready and (na(gb_high[1]) or gb_high != gb_high[1])
+    if not na(l_gb_h)
+        line.delete(l_gb_h)
+    l_gb_h := line.new(bar_index, gb_high, bar_index + line_len, gb_high,
+         color=color.new(color.red, 20), width=1, style=line.style_dashed)
+
+if gb_ready and (na(gb_low[1]) or gb_low != gb_low[1])
+    if not na(l_gb_l)
+        line.delete(l_gb_l)
+    l_gb_l := line.new(bar_index, gb_low, bar_index + line_len, gb_low,
+         color=color.new(color.teal, 20), width=1, style=line.style_dashed)
+
+if choc_fresh
+    if not na(l_choc)
+        line.delete(l_choc)
+    choc_lvl = choc_dir == -1 ? gb_low : gb_high
+    l_choc := line.new(bar_index, choc_lvl, bar_index + line_len, choc_lvl,
+         color=choc_dir == -1 ? color.red : color.lime, width=2, style=line.style_dashed)
+
+// Shapes
+plotshape(em_buy,        title="E.MARTILLO buy",  style=shape.diamond,      location=location.belowbar, color=color.yellow,  size=size.small)
+plotshape(em_sell,       title="E.MARTILLO sell", style=shape.diamond,      location=location.abovebar, color=color.fuchsia, size=size.small)
+plotshape(env_buy  or contact_buy,  title="BUY ENV/CONTACTO",  style=shape.circle, location=location.belowbar, color=color.lime,   size=size.tiny)
+plotshape(env_sell or contact_sell, title="SELL ENV/CONTACTO", style=shape.circle, location=location.abovebar, color=color.red,    size=size.tiny)
+plotshape(start_buy,  title="START buy",  style=shape.triangleup,   location=location.belowbar, color=color.aqua,   size=size.tiny)
+plotshape(start_sell, title="START sell", style=shape.triangledown, location=location.abovebar, color=color.orange, size=size.tiny)
+
+bgcolor(choc_dir == -1 ? color.new(color.red,  93) : na)
+bgcolor(choc_dir ==  1 ? color.new(color.lime, 93) : na)
+
+// ── DASHBOARD ────────────────────────────────────────────────
+var table dash = table.new(position.top_right, 2, 13,
+     bgcolor=color.new(color.black, 70), border_width=1, border_color=color.new(color.gray, 60))
+
+if barstate.islast
+    table.cell(dash, 0, 0, "XAU VIVO v2", text_color=color.orange, text_size=size.small, bgcolor=color.new(color.orange, 80))
+    table.cell(dash, 1, 0, "M1 + M3",     text_color=color.orange, text_size=size.small, bgcolor=color.new(color.orange, 80))
+
+    table.cell(dash, 0, 1, "Sesion NY",  text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 1, in_session ? "ACTIVA" : "CERRADA",
+         text_color=in_session ? color.lime : color.gray, text_size=size.small)
+
+    table.cell(dash, 0, 2, "Gray Box", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 2, gb_ready ? str.tostring(gb_high,"#.###") + " / " + str.tostring(gb_low,"#.###") : "---",
+         text_color=gb_ready ? color.lime : color.gray, text_size=size.small)
+
+    ct = choc_dir == -1 ? "BAJISTA ▼" : choc_dir == 1 ? "ALCISTA ▲" : "Esperando"
+    cc = choc_dir == -1 ? color.red   : choc_dir == 1 ? color.lime  : color.gray
+    table.cell(dash, 0, 3, "ChOC M3", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 3, ct, text_color=cc, text_size=size.small)
+
+    et = eff_dir_em == -1 ? "BAJISTA ▼" : eff_dir_em == 1 ? "ALCISTA ▲" : "---"
+    ec = eff_dir_em == -1 ? color.red   : eff_dir_em == 1 ? color.lime  : color.gray
+    table.cell(dash, 0, 4, "Dir M3",  text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 4, et, text_color=ec, text_size=size.small)
+
+    pc = strategy.position_size > 0 ? color.lime : strategy.position_size < 0 ? color.red : color.gray
+    pt = strategy.position_size > 0 ? "LONG ▲"  : strategy.position_size < 0 ? "SHORT ▼" : "FLAT"
+    table.cell(dash, 0, 5, "Posicion", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 5, pt, text_color=pc, text_size=size.small)
+
+    pbt = in_pb_sell ? "SELL ✓" : in_pb_buy ? "BUY ✓" : "No"
+    ptc = in_pb_sell ? color.red : in_pb_buy ? color.lime : color.gray
+    table.cell(dash, 0, 6, "Pullback", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 6, pbt, text_color=ptc, text_size=size.small)
+
+    table.cell(dash, 0, 7, "GB High", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 7, not na(gb_high) ? str.tostring(gb_high,"#.###") : "---",
+         text_color=color.red, text_size=size.small)
+
+    table.cell(dash, 0, 8, "GB Low", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 8, not na(gb_low) ? str.tostring(gb_low,"#.###") : "---",
+         text_color=color.teal, text_size=size.small)
+
+    table.cell(dash, 0, 9, "Entry", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 9, strategy.position_size != 0 ? str.tostring(strategy.position_avg_price,"#.###") : "---",
+         text_color=color.yellow, text_size=size.small)
+
+    table.cell(dash, 0, 10, "SL hoy", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 10, str.tostring(sl_hoy) + " / 2",
+         text_color=sl_hoy > 0 ? color.red : color.gray, text_size=size.small)
+
+    table.cell(dash, 0, 11, "TP hoy", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 11, str.tostring(tp_hoy) + " / 2",
+         text_color=tp_hoy > 0 ? color.lime : color.gray, text_size=size.small)
+
+    em_txt = em_buy ? "BUY ▲" : em_sell ? "SELL ▼" : "No"
+    em_col = em_buy ? color.yellow : em_sell ? color.fuchsia : color.gray
+    table.cell(dash, 0, 12, "E.Martillo", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 12, em_txt, text_color=em_col, text_size=size.small)

@@ -1,0 +1,108 @@
+{
+  "version": "2026",
+  "fuente": "Datos agregados de cuentas de clínicas estéticas en Argentina",
+  "ultima_actualizacion": "2026-06",
+
+  "meta_ads": {
+    "cpm_promedio_usd": {
+      "awareness": {"min": 3, "max": 8, "optimo": 5},
+      "consideracion": {"min": 5, "max": 12, "optimo": 8},
+      "conversion": {"min": 8, "max": 20, "optimo": 12}
+    },
+    "ctr_benchmark": {
+      "awareness": {"min": 0.5, "max": 1.5, "bueno": 1.2},
+      "consideracion": {"min": 1.5, "max": 3.5, "bueno": 2.5},
+      "conversion": {"min": 2.0, "max": 5.0, "bueno": 3.5}
+    },
+    "frecuencia_optima": {
+      "awareness": {"min": 2, "max": 3},
+      "consideracion": {"min": 3, "max": 5},
+      "conversion": {"min": 4, "max": 7}
+    },
+    "distribucion_presupuesto_recomendada": {
+      "awareness": 0.20,
+      "consideracion": 0.40,
+      "conversion": 0.30,
+      "retargeting": 0.10
+    }
+  },
+
+  "cpl_por_procedimiento_usd": {
+    "rinoplastia": {"excelente": 10, "bueno": 15, "aceptable": 25, "malo": 35},
+    "liposuccion": {"excelente": 8, "bueno": 12, "aceptable": 20, "malo": 30},
+    "lipoescultura": {"excelente": 8, "bueno": 12, "aceptable": 20, "malo": 30},
+    "mamoplastia": {"excelente": 10, "bueno": 15, "aceptable": 25, "malo": 35},
+    "bichectomia": {"excelente": 5, "bueno": 8, "aceptable": 15, "malo": 22},
+    "facial": {"excelente": 8, "bueno": 12, "aceptable": 20, "malo": 28}
+  },
+
+  "tasas_conversion_embudo": {
+    "lead_a_contacto_calificado": {"min": 0.30, "promedio": 0.50, "bueno": 0.70},
+    "contacto_a_consulta": {"min": 0.15, "promedio": 0.25, "bueno": 0.40},
+    "consulta_a_cirugia": {"min": 0.20, "promedio": 0.30, "bueno": 0.45},
+    "lead_a_cirugia": {"min": 0.03, "promedio": 0.07, "bueno": 0.15}
+  },
+
+  "ticket_promedio_ars_equivalente_usd": {
+    "rinoplastia": {"min": 3000, "promedio": 5000, "max": 10000},
+    "liposuccion": {"min": 2500, "promedio": 4000, "max": 8000},
+    "lipoescultura": {"min": 3000, "promedio": 5000, "max": 10000},
+    "mamoplastia": {"min": 2500, "promedio": 4500, "max": 8000},
+    "bichectomia": {"min": 800, "promedio": 1200, "max": 2500},
+    "facial": {"min": 1000, "promedio": 2000, "max": 5000}
+  },
+
+  "roas_por_procedimiento": {
+    "nota": "ROAS = Ticket promedio * tasa lead-a-cirugía / CPL",
+    "rinoplastia": {"minimo": 15, "promedio": 30, "bueno": 50},
+    "liposuccion": {"minimo": 12, "promedio": 25, "bueno": 40},
+    "mamoplastia": {"minimo": 12, "promedio": 25, "bueno": 40},
+    "bichectomia": {"minimo": 8, "promedio": 15, "bueno": 25}
+  },
+
+  "tiempos_de_decision": {
+    "bichectomia": "días a 2 semanas",
+    "rinoplastia": "2 semanas a 3 meses",
+    "mamoplastia": "2 semanas a 2 meses",
+    "liposuccion": "1 mes a 3 meses",
+    "procedimientos_mayores": "1 mes a 6 meses"
+  },
+
+  "estacionalidad_indice": {
+    "nota": "100 = demanda normal. >100 = más demanda. <100 = menos demanda.",
+    "enero": 130,
+    "febrero": 120,
+    "marzo": 90,
+    "abril": 70,
+    "mayo": 100,
+    "junio": 120,
+    "julio": 90,
+    "agosto": 150,
+    "septiembre": 160,
+    "octubre": 150,
+    "noviembre": 130,
+    "diciembre": 80
+  },
+
+  "organico_instagram": {
+    "engagement_rate": {"bajo": 0.02, "promedio": 0.04, "bueno": 0.06, "excelente": 0.10},
+    "reach_rate": {"bajo": 0.05, "promedio": 0.12, "bueno": 0.20, "excelente": 0.30},
+    "story_views_rate": {"bajo": 0.15, "promedio": 0.30, "bueno": 0.50},
+    "frecuencia_posts_semana": {"minima": 3, "recomendada": 5, "maxima": 7},
+    "frecuencia_reels_semana": {"minima": 2, "recomendada": 4}
+  },
+
+  "tiempo_respuesta_leads": {
+    "optimo_minutos": 15,
+    "aceptable_minutos": 60,
+    "malo_horas": 4,
+    "nota": "Responder en menos de 15 minutos aumenta la tasa de conversión hasta 3x"
+  },
+
+  "competidores_referencia_bsas": {
+    "nota": "Clínicas de referencia para comparar posicionamiento y estrategia",
+    "segmento_premium": ["Clínicas en Recoleta/Palermo con precios >120% del promedio"],
+    "segmento_masivo": ["Clínicas multi-sede con volumen alto y precios competitivos"],
+    "segmento_especializado": ["Cirujanos individuales con foco en 1-2 procedimientos"]
+  }
+}

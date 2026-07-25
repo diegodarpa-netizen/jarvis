@@ -1,0 +1,400 @@
+// ============================================================
+// ESTRATEGIA XAU/USD — Plan Técnico + Operativo
+// Instrumento : XAUUSD (OANDA) — visto en TradingView
+// Timeframe   : M1 (estructura en M3, entrada en M1)
+// Sesión      : 09:01 – 10:59 NY
+// RR          : 1 : 0.9
+// Límites/día : 2 SL máx ó 1 TP → se detiene la operatoria
+// ============================================================
+//@version=5
+strategy(
+    title              = "XAU/USD — Plan Técnico (M1 + M3)",
+    overlay            = true,
+    default_qty_type   = strategy.percent_of_equity,
+    default_qty_value  = 1,
+    initial_capital    = 10000,
+    currency           = currency.USD,
+    commission_type    = strategy.commission.percent,
+    commission_value   = 0.02,
+    slippage           = 3,
+    calc_on_every_tick = false
+)
+
+// ============================================================
+// INPUTS
+// ============================================================
+grp_rr    = "Gestión de riesgo"
+grp_entry = "Patrón de entrada"
+grp_time  = "Horario y sesión"
+grp_vis   = "Visualización"
+
+i_rr             = input.float(0.9,   "Take Profit RR (1:X)",             minval=0.1, step=0.1,  group=grp_rr)
+i_max_sl_pips    = input.float(20000, "SL máximo (pips XAUUSD)",          minval=100,             group=grp_rr)
+i_sl_red_pct     = input.float(40,    "% reducción si SL excede máximo",  minval=0,   maxval=99,  group=grp_rr)
+
+i_body_engulf    = input.float(85, "Cuerpo mínimo vela envolvente (%)",   minval=51, maxval=99,   group=grp_entry)
+i_body_hammer    = input.float(50, "Cuerpo mínimo vela martillo (%)",     minval=30, maxval=84,   group=grp_entry)
+i_body_doji_max  = input.float(70, "Cuerpo máximo vela doji (%)",         minval=1,  maxval=84,   group=grp_entry)
+i_min_break_pct  = input.float(0.01, "Quiebre mínimo válido (%)",         minval=0,  step=0.001, group=grp_entry)
+
+i_session_summer = input.session("0901-1059", "Sesión verano USA (mar-nov)",  group=grp_time)
+i_session_winter = input.session("1001-1159", "Sesión invierno USA (nov-mar)", group=grp_time)
+// Verano USA: 2do domingo marzo → 1er domingo noviembre  → Argentina UTC-3, NY UTC-4
+// Invierno USA: 1er domingo noviembre → 2do domingo marzo → Argentina UTC-3, NY UTC-5
+// El usuario debe elegir cuál está activa según la época del año
+i_use_summer     = input.bool(true, "¿Horario verano USA activo?", group=grp_time)
+
+i_show_m3        = input.bool(true, "Mostrar niveles M3",      group=grp_vis)
+i_show_signals   = input.bool(true, "Mostrar señales BUY/SELL", group=grp_vis)
+i_show_session   = input.bool(true, "Colorear sesión operativa", group=grp_vis)
+
+// ============================================================
+// SESIÓN OPERATIVA
+// ============================================================
+active_session  = i_use_summer ? i_session_summer : i_session_winter
+in_session      = not na(time(timeframe.period, active_session, "America/New_York"))
+
+// ============================================================
+// FUNCIONES AUXILIARES DE VELAS
+// ============================================================
+f_total(h, l)       => h - l
+f_body(o, c)        => math.abs(c - o)
+f_upper_wick(h,o,c) => h - math.max(o, c)
+f_lower_wick(l,o,c) => math.min(o, c) - l
+f_is_bull(o, c)     => c > o
+f_is_bear(o, c)     => c < o
+
+// Vela envolvente estándar (cuerpo >= 85%)
+f_engulf_bull(h, l, o, c) =>
+    tot  = f_total(h, l)
+    body = f_body(o, c)
+    tot > 0 and f_is_bull(o, c) and (body / tot) >= (i_body_engulf / 100)
+
+f_engulf_bear(h, l, o, c) =>
+    tot  = f_total(h, l)
+    body = f_body(o, c)
+    tot > 0 and f_is_bear(o, c) and (body / tot) >= (i_body_engulf / 100)
+
+// Vela martillo alcista (cuerpo 50-85%, mecha inferior pronunciada > cuerpo)
+f_hammer_bull(h, l, o, c) =>
+    tot   = f_total(h, l)
+    body  = f_body(o, c)
+    lwick = f_lower_wick(l, o, c)
+    pct   = tot > 0 ? body / tot : 0.0
+    f_is_bull(o, c) and pct >= (i_body_hammer / 100) and pct < (i_body_engulf / 100) and lwick > body
+
+// Vela martillo bajista (cuerpo 50-85%, mecha superior pronunciada > cuerpo)
+f_hammer_bear(h, l, o, c) =>
+    tot   = f_total(h, l)
+    body  = f_body(o, c)
+    uwick = f_upper_wick(h, o, c)
+    pct   = tot > 0 ? body / tot : 0.0
+    f_is_bear(o, c) and pct >= (i_body_hammer / 100) and pct < (i_body_engulf / 100) and uwick > body
+
+// Vela doji (mechas pronunciadas y similares en ambos extremos, cuerpo <= doji_max%)
+// Para ser válida como envolvente doji: ambas mechas deben alcanzar zona 15-85%
+f_doji_bull(h, l, o, c) =>
+    tot   = f_total(h, l)
+    body  = f_body(o, c)
+    pct   = tot > 0 ? body / tot : 0.0
+    lwick = f_lower_wick(l, o, c)
+    uwick = f_upper_wick(h, o, c)
+    wick_sym = tot > 0 ? math.abs(lwick - uwick) / tot : 1.0
+    f_is_bull(o, c) and pct <= (i_body_doji_max / 100) and lwick > 0 and uwick > 0 and wick_sym <= 0.30
+
+f_doji_bear(h, l, o, c) =>
+    tot   = f_total(h, l)
+    body  = f_body(o, c)
+    pct   = tot > 0 ? body / tot : 0.0
+    lwick = f_lower_wick(l, o, c)
+    uwick = f_upper_wick(h, o, c)
+    wick_sym = tot > 0 ? math.abs(lwick - uwick) / tot : 1.0
+    f_is_bear(o, c) and pct <= (i_body_doji_max / 100) and lwick > 0 and uwick > 0 and wick_sym <= 0.30
+
+// Cualquier vela envolvente válida para BUY o SELL
+f_valid_bull_candle(h, l, o, c) =>
+    f_engulf_bull(h, l, o, c) or f_hammer_bull(h, l, o, c) or f_doji_bull(h, l, o, c)
+
+f_valid_bear_candle(h, l, o, c) =>
+    f_engulf_bear(h, l, o, c) or f_hammer_bear(h, l, o, c) or f_doji_bear(h, l, o, c)
+
+// ============================================================
+// DATOS M3 — ESTRUCTURA DEL MERCADO
+// ============================================================
+[m3_o, m3_h, m3_l, m3_c] = request.security(
+    syminfo.tickerid, "3",
+    [open, high, low, close],
+    lookahead = barmerge.lookahead_off
+)
+
+// Pivot en M3: alto = vela alcista seguida de bajista (o pivot alto)
+// Usamos pivothigh/pivotlow sobre los datos M3 con longitud 1 a cada lado
+m3_pivot_h = request.security(
+    syminfo.tickerid, "3",
+    ta.pivothigh(high, 1, 1),
+    lookahead = barmerge.lookahead_off
+)
+m3_pivot_l = request.security(
+    syminfo.tickerid, "3",
+    ta.pivotlow(low, 1, 1),
+    lookahead = barmerge.lookahead_off
+)
+
+// Altos y bajos M3 vigentes
+var float last_m3_high   = na
+var float last_m3_low    = na
+var float prev_m3_high   = na  // penúltimo alto (para cambio de estructura)
+var float prev_m3_low    = na  // penúltimo bajo
+
+if not na(m3_pivot_h)
+    prev_m3_high  := last_m3_high
+    last_m3_high  := m3_pivot_h
+
+if not na(m3_pivot_l)
+    prev_m3_low   := last_m3_low
+    last_m3_low   := m3_pivot_l
+
+// ============================================================
+// TENDENCIA M3 (estructura de mercado)
+// ============================================================
+// Tendencia alcista: el precio supera con cuerpo un alto M3 (>= 0.01%)
+// Tendencia bajista: el precio rompe con cuerpo un bajo M3 (<= -0.01%)
+var int  m3_trend       = 0   // 1=alcista, -1=bajista
+var bool structure_changed = false
+
+min_break = i_min_break_pct / 100.0
+
+// Quiebre alcista válido: cierre de vela M1 supera último alto M3 con cuerpo >= 0.01%
+break_up = not na(last_m3_high) and close > last_m3_high and
+           (close - last_m3_high) / last_m3_high >= min_break
+
+// Quiebre bajista válido: cierre de vela M1 rompe último bajo M3 con cuerpo >= 0.01%
+break_down = not na(last_m3_low) and close < last_m3_low and
+             (last_m3_low - close) / last_m3_low >= min_break
+
+// Cambio de estructura: el precio rompe en dirección contraria a la tendencia
+structure_change_up   = m3_trend == -1 and break_up
+structure_change_down = m3_trend ==  1 and break_down
+
+if break_up
+    m3_trend := 1
+if break_down
+    m3_trend := -1
+
+// ============================================================
+// MODELO MEC (Entrada Continuación)
+// Válido cuando: precio en tendencia M3 + vela envolvente M1
+// Simplificación: tendencia alcista = BUY, tendencia bajista = SELL
+// ============================================================
+mec_buy  = in_session and m3_trend ==  1 and f_valid_bull_candle(high, low, open, close)
+mec_sell = in_session and m3_trend == -1 and f_valid_bear_candle(high, low, open, close)
+
+// ============================================================
+// MODELO MER (Entrada Retroceso)
+// Válido cuando: cambio de estructura M3 + primera vela que toca nivel M3 es envolvente
+// ============================================================
+// La vela de entrada toca el nivel M3 (alto o bajo) y es envolvente
+mer_buy  = in_session and structure_change_up   and f_valid_bull_candle(high, low, open, close) and
+           not na(last_m3_low) and low <= last_m3_low * 1.001
+
+mer_sell = in_session and structure_change_down and f_valid_bear_candle(high, low, open, close) and
+           not na(last_m3_high) and high >= last_m3_high * 0.999
+
+// Señales combinadas
+signal_buy  = (mec_buy  or mer_buy)  and strategy.position_size == 0
+signal_sell = (mec_sell or mer_sell) and strategy.position_size == 0
+
+// ============================================================
+// LÍMITES DIARIOS DE OPERATORIA
+// Plan Operativo: 2 SL → parar | 1 TP → parar | 1 SL + 1 TP → parar
+// ============================================================
+var int  day_sl           = 0
+var int  day_tp           = 0
+var int  last_day         = na
+var int  last_trade_cnt   = 0
+
+curr_day = dayofmonth(time)
+
+// Reiniciar contadores en nuevo día
+if curr_day != last_day
+    day_sl         := 0
+    day_tp         := 0
+    last_trade_cnt := strategy.closedtrades
+    last_day       := curr_day
+
+// Registrar resultado de cada trade cerrado hoy
+if strategy.closedtrades > last_trade_cnt
+    for i = last_trade_cnt to strategy.closedtrades - 1
+        if strategy.closedtrades.profit(i) >= 0
+            day_tp := day_tp + 1
+        else
+            day_sl := day_sl + 1
+    last_trade_cnt := strategy.closedtrades
+
+// Puede operar: ningún TP aún y menos de 2 SL
+can_trade = (day_tp == 0) and (day_sl < 2)
+
+// ============================================================
+// CÁLCULO DE STOP LOSS
+// SL para BUY  = último bajo M3
+// SL para SELL = último alto M3
+// Si SL > 20.000 pips → reducir distancia 40% (dejar el 60%)
+// ============================================================
+f_calc_sl_buy() =>
+    // 1 pip XAUUSD en TradingView = $0.01 → syminfo.mintick
+    pip_val = syminfo.mintick
+    sl_raw  = not na(last_m3_low) ? last_m3_low : close - (500 * pip_val)
+    dist_pips = (close - sl_raw) / pip_val
+    sl_final = dist_pips > i_max_sl_pips ?
+               close - (i_max_sl_pips * (1.0 - i_sl_red_pct / 100.0) * pip_val) :
+               sl_raw
+    sl_final
+
+f_calc_sl_sell() =>
+    pip_val = syminfo.mintick
+    sl_raw  = not na(last_m3_high) ? last_m3_high : close + (500 * pip_val)
+    dist_pips = (sl_raw - close) / pip_val
+    sl_final = dist_pips > i_max_sl_pips ?
+               close + (i_max_sl_pips * (1.0 - i_sl_red_pct / 100.0) * pip_val) :
+               sl_raw
+    sl_final
+
+// ============================================================
+// EJECUCIÓN
+// ============================================================
+if signal_buy and can_trade
+    sl_price = f_calc_sl_buy()
+    sl_dist  = close - sl_price
+    tp_price = close + sl_dist * i_rr
+    strategy.entry("BUY", strategy.long, comment="MEC/MER ↑")
+    strategy.exit("BUY_EXIT", from_entry="BUY",
+                  stop  = sl_price,
+                  limit = tp_price,
+                  comment_loss  = "SL",
+                  comment_profit = "TP")
+
+if signal_sell and can_trade
+    sl_price = f_calc_sl_sell()
+    sl_dist  = sl_price - close
+    tp_price = close - sl_dist * i_rr
+    strategy.entry("SELL", strategy.short, comment="MEC/MER ↓")
+    strategy.exit("SELL_EXIT", from_entry="SELL",
+                  stop  = sl_price,
+                  limit = tp_price,
+                  comment_loss  = "SL",
+                  comment_profit = "TP")
+
+// ============================================================
+// HEDGE: si hay posición abierta y aparece señal contraria →
+// cerrar la primera y abrir la segunda (solo si no se alcanzó límite)
+// ============================================================
+if strategy.position_size > 0 and signal_sell and can_trade
+    strategy.close("BUY", comment="HEDGE → SELL")
+
+if strategy.position_size < 0 and signal_buy and can_trade
+    strategy.close("SELL", comment="HEDGE → BUY")
+
+// ============================================================
+// VISUALIZACIÓN
+// ============================================================
+
+// Colorear sesión operativa
+bgcolor(i_show_session and in_session ? color.new(color.blue, 90) : na,
+        title="Sesión operativa")
+
+// Niveles M3
+var line line_m3h = na
+var line line_m3l = na
+
+if i_show_m3
+    if not na(m3_pivot_h) and barstate.isconfirmed
+        line.delete(line_m3h)
+        line_m3h := line.new(bar_index - 5, m3_pivot_h, bar_index + 10, m3_pivot_h,
+                             color=color.new(color.red, 20), style=line.style_dotted, width=2)
+
+    if not na(m3_pivot_l) and barstate.isconfirmed
+        line.delete(line_m3l)
+        line_m3l := line.new(bar_index - 5, m3_pivot_l, bar_index + 10, m3_pivot_l,
+                             color=color.new(color.green, 20), style=line.style_dotted, width=2)
+
+// Etiquetas de señal (nube BUY/SELL conforme al PDF)
+if i_show_signals
+    if signal_buy and can_trade
+        label.new(bar_index, low, "BUY",
+                  color      = color.new(color.gray, 30),
+                  textcolor  = color.white,
+                  style      = label.style_label_up,
+                  size       = size.small)
+
+    if signal_sell and can_trade
+        label.new(bar_index, high, "SELL",
+                  color      = color.new(color.gray, 30),
+                  textcolor  = color.white,
+                  style      = label.style_label_down,
+                  size       = size.small)
+
+// Señales en plot (para el panel Strategy Tester)
+plotshape(i_show_signals and signal_buy  and can_trade,
+          title="BUY",  location=location.belowbar,
+          color=color.green, style=shape.triangleup,  size=size.small)
+plotshape(i_show_signals and signal_sell and can_trade,
+          title="SELL", location=location.abovebar,
+          color=color.red,   style=shape.triangledown, size=size.small)
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+var table dash = table.new(position.top_right, 2, 7,
+                           bgcolor=color.new(color.black, 70),
+                           border_color=color.new(color.gray, 40),
+                           border_width=1,
+                           frame_color=color.new(color.gray, 40),
+                           frame_width=1)
+
+if barstate.islast
+    // Encabezado
+    table.cell(dash, 0, 0, "XAU/USD Strategy",
+               text_color=color.white, text_size=size.small,
+               bgcolor=color.new(color.navy, 20), colspan=2)
+
+    // Tendencia M3
+    trend_txt   = m3_trend ==  1 ? "ALCISTA ▲" : m3_trend == -1 ? "BAJISTA ▼" : "NEUTRAL"
+    trend_color = m3_trend ==  1 ? color.lime   : m3_trend == -1 ? color.red    : color.gray
+    table.cell(dash, 0, 1, "Tendencia M3",   text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 1, trend_txt,         text_color=trend_color,  text_size=size.small)
+
+    // Sesión
+    table.cell(dash, 0, 2, "Sesión activa",   text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 2, in_session ? "OPERANDO" : "CERRADA",
+               text_color=in_session ? color.lime : color.gray, text_size=size.small)
+
+    // Contadores diarios
+    table.cell(dash, 0, 3, "SL del día",  text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 3, str.tostring(day_sl) + " / 2",
+               text_color=day_sl >= 2 ? color.red : color.lime, text_size=size.small)
+
+    table.cell(dash, 0, 4, "TP del día",  text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 4, str.tostring(day_tp) + " / 1",
+               text_color=day_tp >= 1 ? color.red : color.lime, text_size=size.small)
+
+    // ¿Puede operar?
+    table.cell(dash, 0, 5, "Puede operar", text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 5, can_trade ? "SÍ ✓" : "NO ✗",
+               text_color=can_trade ? color.lime : color.red, text_size=size.small)
+
+    // Nivel SL activo
+    in_trade_txt = strategy.position_size != 0 ? "ABIERTA" : "SIN POSICIÓN"
+    table.cell(dash, 0, 6, "Posición",     text_color=color.silver, text_size=size.small)
+    table.cell(dash, 1, 6, in_trade_txt,
+               text_color=strategy.position_size != 0 ? color.yellow : color.gray,
+               text_size=size.small)
+
+// ============================================================
+// ALERTAS
+// ============================================================
+alertcondition(signal_buy  and can_trade, title="BUY Signal",
+               message="XAU/USD — Señal de COMPRA | MEC/MER | M3 Alcista")
+alertcondition(signal_sell and can_trade, title="SELL Signal",
+               message="XAU/USD — Señal de VENTA | MEC/MER | M3 Bajista")
+alertcondition(not can_trade, title="Límite diario alcanzado",
+               message="XAU/USD — Límite diario de operaciones alcanzado. No operar.")

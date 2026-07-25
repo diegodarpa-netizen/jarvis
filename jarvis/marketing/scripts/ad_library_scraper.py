@@ -17,6 +17,8 @@ sys.path.insert(0, str(ROOT))
 
 import anthropic
 
+from web_research import web_search_query
+
 CONFIG_PATH = Path(__file__).parent.parent / "data" / "config.json"
 KNOWLEDGE_PATH = Path(__file__).parent.parent / "data" / "knowledge_base.json"
 REPORTS_PATH = Path(__file__).parent.parent / "reports"
@@ -71,12 +73,12 @@ def try_ad_library_api(keyword: str, country: str = "AR") -> dict:
     return {"success": True, "data": data.get("data", [])}
 
 
-def analyze_competitors_with_ai(config: dict) -> str:
+def analyze_competitors_with_ai(config: dict, ads_context: str | None = None) -> str:
     """
-    Análisis profundo de competidores usando Claude + conocimiento del mercado.
+    Análisis profundo de competidores usando Claude + búsqueda web real.
     Incluye URLs de Ad Library para revisión manual.
+    Si ads_context viene de la Ad Library API real, se prioriza sobre la búsqueda web.
     """
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     procedures = config["clinic"]["procedures"]
     geo = config["meta_ads"]["geo_target"]
 
@@ -91,15 +93,20 @@ def analyze_competitors_with_ai(config: dict) -> str:
 
     print("🔍 Analizando competidores de cirugía plástica en Argentina...")
 
-    response = client.messages.create(
-        model="claude-opus-4-8",
-        max_tokens=3000,
+    ads_data_section = (
+        f"\nDATOS REALES de la Meta Ad Library API (usalos como fuente principal, son anuncios activos verificados):\n{ads_context}\n"
+        if ads_context else ""
+    )
+
+    return web_search_query(
         system="""Eres un experto en marketing digital y publicidad para clínicas de cirugía plástica en Argentina.
-Tenés acceso a información actualizada sobre el mercado publicitario de cirugía estética en Buenos Aires.
+Usá la herramienta de búsqueda web para buscar competidores, anuncios y estrategias reales y actuales antes de responder — no respondas de memoria.
+Si se te proveen datos reales de la Ad Library API, priorizalos por sobre la búsqueda web general.
 Analizás qué hacen los competidores exitosos y das recomendaciones ultra-específicas y accionables.""",
-        messages=[{
-            "role": "user",
-            "content": f"""Realizá un análisis completo de la COMPETENCIA en publicidad de cirugía plástica en Buenos Aires, Argentina para una clínica que ofrece: {', '.join(procedures)}.
+        max_tokens=3000,
+        max_uses=5,
+        query=f"""Buscá información real y actual, y realizá un análisis completo de la COMPETENCIA en publicidad de cirugía plástica en Buenos Aires, Argentina para una clínica que ofrece: {', '.join(procedures)}.
+{ads_data_section}
 
 Target: mujeres 22-45 años, Buenos Aires y GBA.
 
@@ -138,11 +145,8 @@ Con copy de ejemplo y diferenciador clave.
 
 NOTA: Las siguientes URLs de Meta Ad Library sirven para verificar manualmente los anuncios activos:
 {urls_text}
-"""
-        }]
+""",
     )
-
-    return response.content[0].text
 
 
 def generate_competitor_report():
@@ -163,8 +167,8 @@ def generate_competitor_report():
         print("   → Usando análisis con IA (igualmente efectivo)")
         ads_context = None
 
-    # AI analysis
-    analysis = analyze_competitors_with_ai(config)
+    # AI analysis — usa los datos reales de la Ad Library API si están disponibles
+    analysis = analyze_competitors_with_ai(config, ads_context=ads_context)
 
     # Generate Ad Library links section
     print("\n🔗 Generando links de Ad Library para revisión manual...")
