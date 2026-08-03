@@ -1,0 +1,15 @@
+{
+  "cuenta": "@drdiegor",
+  "last_updated": "25/07/2026",
+  "snapshots": [
+    {
+      "fecha": "",
+      "seguidores": null,
+      "publicaciones_totales": null,
+      "vistas_promedio_video": null,
+      "tasa_engagement": null,
+      "notas": ""
+    }
+  ],
+  "notas": "Cargar manualmente hasta conectar TikTok API / TikTok Business Center."
+}

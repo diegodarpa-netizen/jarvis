@@ -1,0 +1,95 @@
+{
+  "last_updated": "27/07/2026",
+  "publicaciones": [
+    {
+      "fecha": "23/07/2026",
+      "plataforma": "tiktok",
+      "formato": "video",
+      "tema": "Humor/tendencia (referencia Rosalía) + cross-promo Instagram",
+      "guion_o_idea": "",
+      "estado": "publicado",
+      "responsable": "Pilar",
+      "link_publicado": "https://www.tiktok.com/@drdiegor/photo/7665757061073964308",
+      "resultados": {
+        "vistas": null,
+        "likes": 38,
+        "comentarios": 0,
+        "compartidos": null,
+        "guardados": null
+      },
+      "notas": "Verificado directo en TikTok el 27/07/2026 (hace 4 d al momento del chequeo)."
+    },
+    {
+      "fecha": "23/07/2026",
+      "plataforma": "tiktok",
+      "formato": "video",
+      "tema": "Rinomodelación",
+      "guion_o_idea": "",
+      "estado": "publicado",
+      "responsable": "Pilar",
+      "link_publicado": "https://www.tiktok.com/@drdiegor/video/7665752820037127444",
+      "resultados": {
+        "vistas": null,
+        "likes": null,
+        "comentarios": null,
+        "compartidos": null,
+        "guardados": null
+      },
+      "notas": "Verificado directo en TikTok el 27/07/2026 (hace 4 d al momento del chequeo)."
+    },
+    {
+      "fecha": "22/07/2026",
+      "plataforma": "tiktok",
+      "formato": "video",
+      "tema": "Relleno de labios",
+      "guion_o_idea": "",
+      "estado": "publicado",
+      "responsable": "Pilar",
+      "link_publicado": "https://www.tiktok.com/@drdiegor/video/7665385803467541780",
+      "resultados": {
+        "vistas": null,
+        "likes": null,
+        "comentarios": null,
+        "compartidos": null,
+        "guardados": null
+      },
+      "notas": "Verificado directo en TikTok el 27/07/2026 (hace 5 d al momento del chequeo)."
+    },
+    {
+      "fecha": "21/07/2026",
+      "plataforma": "tiktok",
+      "formato": "video",
+      "tema": "Humor/opinión sobre relleno de labios",
+      "guion_o_idea": "",
+      "estado": "publicado",
+      "responsable": "Pilar",
+      "link_publicado": "https://www.tiktok.com/@drdiegor/video/7665059785250819349",
+      "resultados": {
+        "vistas": null,
+        "likes": 96,
+        "comentarios": 1,
+        "compartidos": null,
+        "guardados": 3
+      },
+      "notas": "Verificado directo en TikTok el 27/07/2026 (hace 6 d al momento del chequeo)."
+    },
+    {
+      "fecha": "",
+      "plataforma": "instagram | tiktok | youtube",
+      "formato": "reel | historia | post | video largo",
+      "tema": "",
+      "guion_o_idea": "",
+      "estado": "idea | grabado | editado | publicado",
+      "responsable": "",
+      "link_publicado": "",
+      "resultados": {
+        "vistas": null,
+        "likes": null,
+        "comentarios": null,
+        "compartidos": null,
+        "guardados": null
+      }
+    }
+  ],
+  "notas": "Las primeras 4 filas son publicaciones REALES de TikTok, verificadas directamente el 27/07/2026 (fechas calculadas a partir de 'hace X días' que mostraba TikTok, pueden tener +/-1 día de margen). La última fila es la plantilla vacía original, dejarla como base para cargar contenido planificado a futuro. Instagram no se pudo verificar por el checkpoint de seguridad de la cuenta — pendiente que Diego pase capturas."
+}

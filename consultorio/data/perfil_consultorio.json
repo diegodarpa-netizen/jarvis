@@ -1,0 +1,44 @@
+{
+  "onboarding_completed": false,
+  "nombre_consultorio": "",
+  "titular": "Dr. Diego Rodríguez",
+  "especialidad": "Cirugía plástica",
+  "prioridad_servicios": ["Cirugía plástica (prioridad 1)", "Medicina estética (prioridad 2)"],
+  "redes": {
+    "instagram": {
+      "usuario_principal": "@drdiegorop.cirugiaplastica",
+      "usuario_secundario": "@drdiegorop",
+      "notas": ""
+    },
+    "tiktok": {
+      "usuario": "@drdiegor",
+      "notas": ""
+    },
+    "youtube": {
+      "usuario": "Diego Rodríguez Pabón",
+      "notas": ""
+    }
+  },
+  "equipo": {
+    "cantidad_personas": 4,
+    "detalle": "Diego (titular/cirujano), Saira (secretaría + Instagram), Pilar (TikTok + mensajes Instagram), Vanina (multicuenta redes + cirugía). Ver equipo/equipo.json para el detalle completo, incluye agente de respuesta automática."
+  },
+  "ubicacion": {
+    "ciudad": "",
+    "pais": "Argentina"
+  },
+  "contacto": {
+    "email": "",
+    "telefono_whatsapp": ""
+  },
+  "competencia": {
+    "cuentas_a_monitorear": ["Dra. Cintia Burgos", "Dr. Fernando Felice", "Dr. Luis Chinski", "Dr. Hernan Chinski", "Dr. Diego Órdenes"],
+    "prioridad_analisis": "Dra. Burgos primero — Diego sospecha que invierte fuerte en publicidad paga, hay que cruzarlo con datos de marketing/ cuando se pueda observar su estrategia."
+  },
+  "reportes": {
+    "frecuencia": "diaria",
+    "horario_preferido": "",
+    "envio_email": false
+  },
+  "notes": "Perfil inicial creado el 25/07/2026. Equipo y redes ya cargados. Faltan completar datos de contacto, ubicación y competencia."
+}

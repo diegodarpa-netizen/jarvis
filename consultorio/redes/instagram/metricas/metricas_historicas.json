@@ -1,0 +1,18 @@
+{
+  "cuenta": "@drdiegorop.cirugiaplastica",
+  "cuenta_secundaria": "@drdiegorop",
+  "last_updated": "25/07/2026",
+  "snapshots": [
+    {
+      "fecha": "",
+      "seguidores": null,
+      "seguidos": null,
+      "publicaciones_totales": null,
+      "alcance_semanal": null,
+      "impresiones_semanales": null,
+      "tasa_engagement": null,
+      "notas": ""
+    }
+  ],
+  "notas": "Cargar manualmente hasta conectar la API de Instagram (Meta Graph API). Un snapshot por semana es suficiente para trackear tendencia."
+}

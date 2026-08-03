@@ -1,0 +1,5 @@
+{
+  "last_updated": "25/07/2026",
+  "turnos": [],
+  "notas": "Módulo en pausa hasta la siguiente etapa. Cuando arranquemos con la agenda de pacientes, cada turno se va a cargar acá: fecha, hora, paciente, tipo de consulta, estado."
+}

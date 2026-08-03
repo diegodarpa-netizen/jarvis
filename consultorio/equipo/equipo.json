@@ -1,0 +1,37 @@
+{
+  "last_updated": "25/07/2026",
+  "integrantes": [
+    {
+      "nombre": "Diego Rodríguez Pabón",
+      "rol": "Titular / Cirujano",
+      "area": "Consultorio",
+      "responsabilidades": ["Consultas", "Cirugías", "Contenido on-camera"]
+    },
+    {
+      "nombre": "Saira",
+      "rol": "Secretaria / Community Manager Instagram",
+      "area": "Redes / Administración",
+      "responsabilidades": ["Manejo de Instagram", "Responder mensajes", "Secretaría"]
+    },
+    {
+      "nombre": "Pilar",
+      "rol": "Community Manager TikTok",
+      "area": "Redes",
+      "responsabilidades": ["Manejo de TikTok", "Controla y responde mensajes de Instagram"]
+    },
+    {
+      "nombre": "Vanina",
+      "rol": "Redes multicuenta / Asistencia quirúrgica",
+      "area": "Redes / Cirugía",
+      "responsabilidades": ["Manejo de otras cuentas de redes (multicuenta)", "Parte de cirugía"]
+    }
+  ],
+  "herramientas_automatizadas": [
+    {
+      "nombre": "Agente de respuesta automática",
+      "descripcion": "Responde por WhatsApp. Los mensajes que llegan a Instagram o TikTok reciben una respuesta automática que redirige al usuario a WhatsApp, y ahí el agente sigue la conversación.",
+      "responsable_supervision": "Saira"
+    }
+  ],
+  "notas": "Equipo cargado el 25/07/2026."
+}

@@ -1,0 +1,15 @@
+{
+  "cuenta": "",
+  "last_updated": "25/07/2026",
+  "snapshots": [
+    {
+      "fecha": "",
+      "suscriptores": null,
+      "videos_totales": null,
+      "vistas_totales": null,
+      "horas_de_reproduccion": null,
+      "notas": ""
+    }
+  ],
+  "notas": "Cargar manualmente hasta conectar YouTube Data API. Falta confirmar el nombre exacto del canal."
+}
