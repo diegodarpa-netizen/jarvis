@@ -1,0 +1,67 @@
+﻿Hora apertura (NY),Beneficio (R),Buy / Sell,Día,Fecha,Hora cierre  (NY),Modelo de entrada,Patrón de entrada,Resultado,"Trades sl ","Trades tp "
+09:34,-1,Buy,Jueves,16/04/2026,09:47,MER,,Stop Loss,1,
+09:04,1,Buy,Lunes,11/05/2026,09:23,MEC,Envolvente,Take Profit,,1
+09:29,1,Sell,Jueves,14/05/2026,09:40,MEC,Envolvente,Take Profit,,1
+09:05,1,Sell,Martes,21/04/2026,09:09,MER,,Take Profit,,1
+09:25,1,Sell,Martes,31/03/2026,09:32,"Hegde Position, MER",,Take Profit,,1
+09:38,1,Sell,Miércoles,29/04/2026,09:40,MEC,Envolvente,Take Profit,,1
+10:31,1,Buy,Miércoles,13/05/2026,12:15,MEC,Envolvente,Take Profit,,1
+09:28,1,Buy,Miércoles,22/04/2026,09:46,MER,,Take Profit,,1
+09:18,-1,Buy,Miércoles,13/05/2026,09:31,MEC,START,Stop Loss,1,
+09:10,1,Sell,Miércoles,08/04/2026,09:31,MER,,Take Profit,,1
+09:18,1,Sell,Jueves,24/06/2026,09:33,MER,,Take Profit,,1
+09:04,1,Sell,Martes,28/04/2026,10:03,MEC,Envolvente,Take Profit,,1
+09:41,1,Buy,Miércoles,24/06/2026,09:51,MEC,Envolvente,Take Profit,,1
+10:15,1,Buy,Lunes,04/05/2026,10:20,MEC,Envolvente,Take Profit,,1
+10:15,0,Buy,Viernes,26/06/2026,10:56,MEC,Envolvente,Take Profit,,1
+09:23,1,Buy,Lunes,18/05/2026,09:33,MEC,Envolvente,Take Profit,,1
+09:09,"-0,14",Buy,Martes,31/03/2026,09:25,MER,,Stop Loss,1,
+09:02,1,Sell,Martes,19/05/2026,09:06,MEC,Envolvente,Take Profit,,1
+10:26,"-0,17",Sell,Lunes,27/04/2026,10:35,MER,,Stop Loss,1,
+09:13,-1,Buy,Miércoles,20/05/2026,09:24,MER,,Stop Loss,1,
+09:24,1,Sell,Martes,05/05/2026,10:18,MER,,Take Profit,,1
+09:24,1,Sell,Miércoles,20/05/2026,09:42,MEC,Envolvente,Take Profit,,1
+"09:37 ",1,Sell,Viernes,15/05/2026,10:19,MER,,Take Profit,,1
+09:33,-1,Sell,Jueves,21/05/2026,09:43,MEC,Envolvente,Stop Loss,1,
+10:45,1,Buy,Miércoles,01/04/2026,11:32,MEC,START,Take Profit,,1
+09:48,1,Buy,Jueves,21/05/2026,09:53,MER,,Take Profit,,1
+10:30,1,Sell,Miércoles,15/04/2026,10:52,MEC,Envolvente,Take Profit,,1
+10:03,1,Sell,Viernes,22/05/2026,10:14,MEC,Envolvente,Take Profit,,1
+09:21,1,Buy,Jueves,07/05/2026,09:33,"Hegde Position, MER",,Take Profit,,1
+09:18,"-0,56",Sell,Miércoles,27/05/2026,09:32,MEC,START,Stop Loss,1,
+09:13,-1,Sell,Jueves,07/05/2026,09:21,MEC,Envolvente,Stop Loss,1,
+09:32,1,Buy,Miércoles,27/05/2026,10:05,MER,,Take Profit,,1
+09:52,1,Buy,Viernes,01/05/2026,09:55,MEC,Envolvente,Take Profit,,1
+10:08,1,Buy,Jueves,28/05/2026,10:13,MER,,Take Profit,,1
+09:05,1,Sell,Lunes,30/03/2026,09:35,MER,,Take Profit,,1
+09:40,1,Buy,Viernes,29/05/2026,10:01,MEC,Envolvente,Take Profit,,1
+09:21,1,Sell,Viernes,24/04/2026,09:31,MER,,Take Profit,,1
+09:21,1,Sell,Martes,02/06/2026,09:54,MEC,Envolvente,Take Profit,,1
+09:53,1,Buy,Miércoles,06/05/2026,10:15,MEC,Envolvente,Take Profit,,1
+09:20,1,Sell,Miércoles,03/06/2026,09:45,MEC,Envolvente,Take Profit,,1
+09:24,1,Buy,Lunes,06/04/2026,10:00,MER,,Take Profit,,1
+09:53,1,Sell,Jueves,04/06/2026,10:08,MER,,Take Profit,,1
+10:17,1,Sell,Lunes,13/04/2026,10:23,MEC,Envolvente,Take Profit,,1
+09:46,1,Buy,Martes,09/06/2026,09:48,MER,,Take Profit,,1
+09:57,-1,Buy,Miércoles,15/04/2026,10:00,MEC,START,Stop Loss,1,
+09:40,-1,Sell,Martes,09/06/2026,09:46,MEC,Envolvente,Stop Loss,1,
+09:41,1,Buy,Jueves,02/04/2026,09:47,MER,,Take Profit,,1
+09:59,1,Sell,Jueves,11/06/2026,10:05,MER,,Take Profit,,1
+10:01,1,Sell,Martes,07/04/2026,10:06,"Hegde Position, MER",,Take Profit,,1
+09:07,-1,Buy,Viernes,12/06/2026,09:40,MER,,Stop Loss,1,
+09:19,1,Buy,Martes,14/04/2026,09:38,MEC,Envolvente,Take Profit,,1
+09:40,-1,Sell,Viernes,12/06/2026,11:05,MER,,Stop Loss,1,
+09:33,1,Buy,Jueves,09/04/2026,09:35,MER,,Take Profit,,1
+10:05,-1,Buy,Lunes,15/06/2026,10:38,MER,,Stop Loss,1,
+09:16,-1,Buy,Lunes,27/04/2026,09:35,MER,,Stop Loss,1,
+09:16,1,Sell,Martes,16/06/2026,10:18,MER,,Take Profit,,1
+09:34,1,Sell,Jueves,30/04/2026,09:46,MEC,START,Take Profit,,1
+09:40,1,Sell,Jueves,18/06/2026,09:46,MER,,Take Profit,,1
+09:16,1,Buy,Jueves,23/04/2026,09:46,MER,,Take Profit,,1
+10:02,-1,Sell,Lunes,22/06/2026,10:07,MEC,Envolvente,Stop Loss,1,
+09:32,-1,Buy,Lunes,04/05/2026,10:09,MER,,Stop Loss,1,
+09:40,1,Buy,Martes,23/06/2026,09:53,MEC,Envolvente,Take Profit,,1
+09:54,-1,Buy,Martes,07/04/2026,10:01,MER,,Stop Loss,1,
+09:06,1,Buy,Viernes,17/04/2026,09:10,MEC,Envolvente,Take Profit,,1
+09:16,-1,Sell,Viernes,01/05/2026,09:33,MEC,START,Stop Loss,1,
+09:47,-1,Sell,Lunes,13/04/2026,09:48,MEC,Envolvente,Stop Loss,1,

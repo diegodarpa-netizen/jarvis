@@ -1,0 +1,5 @@
+escenario,capital_final,retorno_%,drawdown_max_%
+"B1: sube tras 2+ ganadoras, baja tras 2+ perdedoras",46810.16,368.1,-10.67
+B2: CONTRARIAN -- sube tras perder (control),36449.03,264.5,-6.91
+"B3: retrospectivo, alto riesgo en meses fuertes (sabiendo el futuro)",60201.21,502.0,-9.74
+B4: fijo 2% (referencia),41484.51,314.8,-7.87

@@ -1,0 +1,68 @@
+//@version=5
+// Envolvente de la EMA9 por áreas de distancia (en ATR) -- idea de Diego
+// (14/08/2026). En vez de una sola línea de EMA, dibuja varias bandas
+// arriba y abajo (a 0,5 / 1 / 1,5 / 2 ATR de distancia por default,
+// ajustable) que "envuelven" la EMA9, sombreando cada área entre bandas
+// con un tono distinto -- así se ve de un vistazo en qué área está el
+// precio, no solo si surfea o toca.
+//
+// Ver areas_distancia_ema9.py (misma fórmula: distancia = (close-EMA9)/ATR14)
+// para la estadística de qué pasa históricamente en cada área.
+indicator("Envolvente EMA9 por áreas (oro)", overlay=true)
+
+emaLen = input.int(9, "Período EMA")
+atrLen = input.int(14, "Período ATR")
+k1 = input.float(0.5, "Banda 1 (ATR)", minval=0.1, step=0.1)
+k2 = input.float(1.0, "Banda 2 (ATR)", minval=0.1, step=0.1)
+k3 = input.float(1.5, "Banda 3 (ATR)", minval=0.1, step=0.1)
+k4 = input.float(2.0, "Banda 4 (ATR)", minval=0.1, step=0.1)
+
+ema9 = ta.ema(close, emaLen)
+atr14 = ta.atr(atrLen)
+
+upper1 = ema9 + k1 * atr14
+upper2 = ema9 + k2 * atr14
+upper3 = ema9 + k3 * atr14
+upper4 = ema9 + k4 * atr14
+lower1 = ema9 - k1 * atr14
+lower2 = ema9 - k2 * atr14
+lower3 = ema9 - k3 * atr14
+lower4 = ema9 - k4 * atr14
+
+pEma = plot(ema9, color=color.orange, linewidth=2, title="EMA9")
+pU1 = plot(upper1, color=color.new(color.green, 55), title="+" + str.tostring(k1) + " ATR")
+pU2 = plot(upper2, color=color.new(color.green, 45), title="+" + str.tostring(k2) + " ATR")
+pU3 = plot(upper3, color=color.new(color.green, 35), title="+" + str.tostring(k3) + " ATR")
+pU4 = plot(upper4, color=color.new(color.green, 25), title="+" + str.tostring(k4) + " ATR")
+pL1 = plot(lower1, color=color.new(color.red, 55), title="-" + str.tostring(k1) + " ATR")
+pL2 = plot(lower2, color=color.new(color.red, 45), title="-" + str.tostring(k2) + " ATR")
+pL3 = plot(lower3, color=color.new(color.red, 35), title="-" + str.tostring(k3) + " ATR")
+pL4 = plot(lower4, color=color.new(color.red, 25), title="-" + str.tostring(k4) + " ATR")
+
+// Sombreado de cada área -- más oscuro cuanto más lejos de la EMA9
+fill(pEma, pU1, color=color.new(color.green, 93), title="Área verde 0-" + str.tostring(k1))
+fill(pU1, pU2, color=color.new(color.green, 87), title="Área verde " + str.tostring(k1) + "-" + str.tostring(k2))
+fill(pU2, pU3, color=color.new(color.green, 80), title="Área verde " + str.tostring(k2) + "-" + str.tostring(k3))
+fill(pU3, pU4, color=color.new(color.green, 72), title="Área verde " + str.tostring(k3) + "-" + str.tostring(k4))
+fill(pEma, pL1, color=color.new(color.red, 93), title="Área roja 0-" + str.tostring(k1))
+fill(pL1, pL2, color=color.new(color.red, 87), title="Área roja " + str.tostring(k1) + "-" + str.tostring(k2))
+fill(pL2, pL3, color=color.new(color.red, 80), title="Área roja " + str.tostring(k2) + "-" + str.tostring(k3))
+fill(pL3, pL4, color=color.new(color.red, 72), title="Área roja " + str.tostring(k3) + "-" + str.tostring(k4))
+
+// Distancia actual en ATR, para saber en qué área está el precio ahora
+distATR = (close - ema9) / atr14
+
+areaActual() =>
+    d = math.abs(distATR)
+    lado = distATR >= 0 ? "arriba" : "abajo"
+    txt = d <= k1 ? "0-" + str.tostring(k1) : d <= k2 ? str.tostring(k1) + "-" + str.tostring(k2) : d <= k3 ? str.tostring(k2) + "-" + str.tostring(k3) : d <= k4 ? str.tostring(k3) + "-" + str.tostring(k4) : str.tostring(k4) + "+"
+    lado + " (" + txt + " ATR)"
+
+var label etiqueta = na
+if barstate.islast
+    label.delete(etiqueta)
+    txt = "Área: " + areaActual() + "\nDistancia: " + str.tostring(distATR, "#.##") + " ATR"
+    etiqueta := label.new(bar_index, high + atr14, txt, style=label.style_label_down,
+                           color=color.new(color.blue, 0), textcolor=color.white, size=size.small)
+
+plot(distATR, title="Distancia (ATR)", display=display.data_window)

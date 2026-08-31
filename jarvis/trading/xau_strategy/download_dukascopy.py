@@ -1,140 +1,152 @@
 """
-Descarga datos de XAU/USD M3 de Dukascopy para un rango de fechas completo.
+Descarga ticks de XAU/USD de Dukascopy y arma velas M1 para un rango de
+fechas completo. Reemplaza la versión anterior (URL/endpoint rotos —
+apuntaba a un endpoint de velas que Dukascopy ya no sirve).
+
+Endpoint real (verificado 12/08/2026): datos de TICK por hora, formato
+LZMA "alone" (no gzip), 20 bytes por tick (ms offset, ask, bid, ask_vol,
+bid_vol, todo big-endian). Se arman velas M1 agregando ticks.
+
+Como la estructura M3 de la estrategia resetea todo al inicio de cada
+sesión NY (09:01) — ver jarvis/trading/rules/estructura_m3.md — solo
+hace falta la ventana 08:00-11:30 NY de cada día, no el día completo.
+Reduce la descarga de ~24h/día a ~3.5h/día.
 """
-import requests, struct, datetime, os, csv, time, gzip
-from io import BytesIO
+import requests, struct, lzma, datetime, os, csv, time
+import pytz
 
-OUTPUT = os.path.join(os.path.dirname(__file__), 'data', 'XAUUSD_M3.csv')
+OUTPUT = os.path.join(os.path.dirname(__file__), 'data', 'XAUUSD_M1.csv')
+SYMBOL = "XAUUSD"
+NY_TZ = pytz.timezone("America/New_York")
+UTC = pytz.UTC
 
-START = datetime.date(2025, 10, 1)
-END   = datetime.date(2026, 5, 29)
+# Ventana a descargar por día (hora NY) -> se convierte a UTC internamente
+WINDOW_START_NY = datetime.time(8, 0)
+WINDOW_END_NY = datetime.time(11, 30)
 
-def fetch_day(date):
-    """Descarga velas M3 BID de Dukascopy para una fecha dada."""
-    ts = int(datetime.datetime.combine(date, datetime.time(0,0)).timestamp()) * 1000
-    url = (f"https://freeserv.dukascopy.com/2.0/?"
-           f"path=chart/json/{date.year}/{date.month-1:02d}/{date.day:02d}/BID_candles_min_3"
-           f"&jsonp=_callbacks____chart_json_")
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0',
-        'Referer': 'https://freeserv.dukascopy.com'
-    }
-
-    try:
-        r = requests.get(url, headers=headers, timeout=15)
-        if r.status_code != 200:
-            return []
-
-        text = r.text.strip()
-        # Remover wrapper jsonp
-        if text.startswith('_callbacks____chart_json_('):
-            text = text[len('_callbacks____chart_json_('):-1]
-
-        import json
-        data = json.loads(text)
-        candles = []
-        for item in data:
-            ts_ms, o, h, l, c, vol = item
-            dt = datetime.datetime.fromtimestamp(ts_ms/1000, tz=datetime.timezone.utc)
-            candles.append((dt, round(o,3), round(h,3), round(l,3), round(c,3), int(vol)))
-        return candles
-    except Exception as e:
-        return []
+HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 
-def fetch_day_binary(date):
-    """Descarga datos binarios tick de Dukascopy y parsea OHLCV M3."""
-    # URL formato binario de Dukascopy
-    y = date.year
-    m = date.month - 1  # Dukascopy usa mes base 0
-    d = date.day
+def fetch_hour_ticks(dt_utc_hour: datetime.datetime, retries: int = 4) -> list:
+    """Descarga los ticks de UNA hora UTC dada. Devuelve lista de
+    (datetime_utc, ask, bid). El servidor de Dukascopy es inestable
+    (timeouts/503 intermitentes aunque el dato exista) — reintenta con
+    backoff antes de dar por perdida la hora."""
+    y, m, d, h = dt_utc_hour.year, dt_utc_hour.month, dt_utc_hour.day, dt_utc_hour.hour
+    url = f"https://datafeed.dukascopy.com/datafeed/{SYMBOL}/{y}/{m-1:02d}/{d:02d}/{h:02d}h_ticks.bi5"
 
-    # Intentar con diferentes formatos de URL de Dukascopy
-    urls = [
-        f"https://datafeed.dukascopy.com/datafeed/XAUUSD/{y}/{m:02d}/{d:02d}/BID_candles_min_3.bi5",
-        f"https://freeserv.dukascopy.com/2.0/?path=chart/json/{y}/{m:02d}/{d:02d}/BID_candles_min_3&jsonp=cb",
-    ]
-
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
-
-    for url in urls:
+    for attempt in range(retries):
         try:
-            r = requests.get(url, headers=headers, timeout=20)
+            r = requests.get(url, headers=HEADERS, timeout=25)
             if r.status_code == 200 and len(r.content) > 0:
-                if url.endswith('.bi5'):
-                    return parse_bi5(r.content, date)
-        except:
-            continue
-    return []
+                decompressed = lzma.decompress(r.content, format=lzma.FORMAT_ALONE)
+                break
+            elif r.status_code == 404:
+                return []  # hora sin mercado (fin de semana feriado, etc.) — no reintentar
+        except Exception:
+            pass
+        time.sleep(1.5 * (attempt + 1))
+    else:
+        return []  # se agotaron los reintentos
 
-
-def parse_bi5(data, date):
-    """Parsea el formato binario .bi5 de Dukascopy."""
-    try:
-        decompressed = gzip.decompress(data)
-    except:
+    base = dt_utc_hour.replace(minute=0, second=0, microsecond=0)
+    ticks = []
+    n = len(decompressed) // 20
+    for i in range(n):
+        off = i * 20
         try:
-            import lzma
-            decompressed = lzma.decompress(data)
-        except:
-            return []
-
-    # Cada registro: 4 bytes timestamp (ms desde medianoche) + 4 floats OHLCV
-    RECORD = 20  # 4 + 4*4 bytes (LZMA format for candles)
-    candles = []
-    base_dt = datetime.datetime.combine(date, datetime.time(0,0), tzinfo=datetime.timezone.utc)
-
-    for i in range(0, len(decompressed) - RECORD + 1, RECORD):
-        try:
-            ts_ms = struct.unpack('>I', decompressed[i:i+4])[0]
-            o = struct.unpack('>f', decompressed[i+4:i+8])[0]
-            h = struct.unpack('>f', decompressed[i+8:i+12])[0]
-            l = struct.unpack('>f', decompressed[i+12:i+16])[0]
-            c = struct.unpack('>f', decompressed[i+16:i+20])[0]
-            dt = base_dt + datetime.timedelta(milliseconds=ts_ms)
-            if 1000 < o < 10000:
-                candles.append((dt, round(o,3), round(h,3), round(l,3), round(c,3), 0))
-        except:
+            ms, ask, bid, _ask_vol, _bid_vol = struct.unpack('>3I2f', decompressed[off:off + 20])
+            price_ask = ask / 1000.0
+            price_bid = bid / 1000.0
+            if not (100 < price_bid < 20000):  # sanity check
+                continue
+            ts = base + datetime.timedelta(milliseconds=ms)
+            ticks.append((ts, price_ask, price_bid))
+        except Exception:
             continue
-    return candles
+    return ticks
+
+
+def ticks_to_m1(ticks: list) -> list:
+    """Agrega ticks (mid price) a velas M1. Devuelve lista de
+    (datetime_utc_minuto, open, high, low, close, n_ticks)."""
+    if not ticks:
+        return []
+    buckets = {}
+    for ts, ask, bid in ticks:
+        mid = (ask + bid) / 2.0
+        minute_key = ts.replace(second=0, microsecond=0)
+        if minute_key not in buckets:
+            buckets[minute_key] = []
+        buckets[minute_key].append(mid)
+
+    bars = []
+    for minute, prices in sorted(buckets.items()):
+        bars.append((minute, prices[0], max(prices), min(prices), prices[-1], len(prices)))
+    return bars
+
+
+def hours_for_day_ny(date_ny: datetime.date):
+    """Genera las horas UTC a descargar para cubrir 08:00-11:30 NY de ese día."""
+    start_ny = NY_TZ.localize(datetime.datetime.combine(date_ny, WINDOW_START_NY))
+    end_ny = NY_TZ.localize(datetime.datetime.combine(date_ny, WINDOW_END_NY))
+    start_utc = start_ny.astimezone(UTC)
+    end_utc = end_ny.astimezone(UTC)
+
+    hour = start_utc.replace(minute=0, second=0, microsecond=0)
+    hours = []
+    while hour <= end_utc:
+        hours.append(hour)
+        hour += datetime.timedelta(hours=1)
+    return hours
+
+
+def download_range(start_date: datetime.date, end_date: datetime.date, delay=0.25):
+    all_bars = []
+    current = start_date
+    days_done = 0
+    days_with_data = 0
+    total_days = (end_date - start_date).days + 1
+
+    while current <= end_date:
+        if current.weekday() < 5:  # solo dias habiles
+            day_ticks = []
+            for hour_utc in hours_for_day_ny(current):
+                day_ticks.extend(fetch_hour_ticks(hour_utc))
+                time.sleep(delay)
+            day_bars = ticks_to_m1(day_ticks)
+            if day_bars:
+                all_bars.extend(day_bars)
+                days_with_data += 1
+                if days_done % 10 == 0:
+                    print(f"  {current} — {len(day_bars)} velas M1 ({len(day_ticks)} ticks) OK")
+            else:
+                print(f"  {current} — sin datos")
+        days_done += 1
+        if days_done % 20 == 0:
+            print(f"  Progreso: {days_done}/{total_days} dias ({days_with_data} con datos)")
+        current += datetime.timedelta(days=1)
+
+    return all_bars
 
 
 if __name__ == '__main__':
-    print(f"Descargando XAU/USD M3 — {START} → {END}")
+    import sys
+    days_back = int(sys.argv[1]) if len(sys.argv) > 1 else 180
+    END = datetime.date.today()
+    START = END - datetime.timedelta(days=days_back)
+
+    print(f"Descargando XAU/USD M1 (ventana 08:00-11:30 NY) — {START} -> {END}")
     print(f"Guardando en: {OUTPUT}\n")
 
-    all_candles = []
-    current = START
-    days_total = (END - START).days + 1
-    days_done  = 0
-    errors     = 0
+    bars = download_range(START, END)
+    bars.sort(key=lambda x: x[0])
 
-    while current <= END:
-        if current.weekday() < 5:  # Solo días de semana
-            candles = fetch_day_binary(current)
-            if candles:
-                all_candles.extend(candles)
-                print(f"  {current} — {len(candles)} velas OK")
-            else:
-                errors += 1
-                print(f"  {current} — sin datos")
-            time.sleep(0.3)  # Respetar el servidor
-
-        days_done += 1
-        if days_done % 20 == 0:
-            pct = days_done / days_total * 100
-            print(f"\n  Progreso: {pct:.0f}% ({days_done}/{days_total} días)\n")
-
-        current += datetime.timedelta(days=1)
-
-    # Guardar CSV
-    all_candles.sort(key=lambda x: x[0])
+    os.makedirs(os.path.dirname(OUTPUT), exist_ok=True)
     with open(OUTPUT, 'w', newline='') as f:
         w = csv.writer(f)
-        w.writerow(['time','open','high','low','close','volume'])
-        for c in all_candles:
-            w.writerow([c[0].strftime('%Y-%m-%d %H:%M:%S'), c[1], c[2], c[3], c[4], c[5]])
+        w.writerow(['time', 'open', 'high', 'low', 'close', 'n_ticks'])
+        for b in bars:
+            w.writerow([b[0].strftime('%Y-%m-%d %H:%M:%S'), *[round(x, 3) for x in b[1:5]], b[5]])
 
-    print(f"\nListo. {len(all_candles)} velas guardadas en {OUTPUT}")
-    print(f"Errores/días sin datos: {errors}")
+    print(f"\nListo. {len(bars)} velas M1 guardadas en {OUTPUT}")

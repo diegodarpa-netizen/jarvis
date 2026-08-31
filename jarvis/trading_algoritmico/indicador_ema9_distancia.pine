@@ -1,0 +1,82 @@
+//@version=5
+// Distancia vela-EMA9 + filtro de umbral -- idea propia de Diego
+// (14/08/2026), ver jarvis/trading_algoritmico/bitacora_activos.md,
+// medir_distancia_ema9.py y analisis_franjas_verde_rojo.py (misma
+// fórmula y misma lógica de entrada/salida en los tres lugares, para que
+// lo que ves acá coincida con lo que miden los scripts de Python).
+//
+// Fondo: verde = surfeando arriba de la EMA9, rojo = surfeando abajo,
+// amarillo = tocándola (no se opera).
+//
+// Flechas: con "Umbral mínimo (ATR)" en 0 (default), la entrada se marca
+// apenas arranca el color. Subiendo el umbral, la entrada se retrasa hasta
+// que la distancia a la EMA9 (en ATR) supere ese valor -- podés tocar el
+// input y ver en vivo cómo se mueven las flechas.
+//
+// OJO -- lo que ya midió el backtest (bitácora 14/08): la distancia sola
+// NO distingue una bajada que sigue de largo de una que revierte de
+// verdad (656 corridas medidas, 49%/51%, sin diferencia estadística), y
+// el filtro de umbral no mejoró el % de acierto en ningún nivel probado
+// (0,3 a 1,0 ATR) -- solo entra más tarde y pierde parte del movimiento.
+// Este indicador es para seguir probando en vivo, no da por buena la idea.
+indicator("Distancia a EMA9 + umbral (oro)", overlay=true)
+
+emaLen = input.int(9, "Período EMA")
+atrLen = input.int(14, "Período ATR")
+umbralAtr = input.float(0.0, "Umbral mínimo de distancia (ATR)", minval=0.0, step=0.1)
+
+ema9 = ta.ema(close, emaLen)
+atr14 = ta.atr(atrLen)
+
+distDolares = close - ema9
+distPct = distDolares / ema9 * 100
+distATR = distDolares / atr14
+
+toca = low <= ema9 and ema9 <= high
+surfeaArriba = low > ema9
+surfeaAbajo = not toca and not surfeaArriba
+
+plot(ema9, color=color.orange, linewidth=2, title="EMA9")
+bgcolor(surfeaArriba ? color.new(color.green, 85) : surfeaAbajo ? color.new(color.red, 85) : color.new(color.yellow, 80))
+
+// --- Lógica de franjas + filtro de umbral (mismo criterio que analisis_franjas_verde_rojo.py) ---
+var int dirActual = 0
+var bool entroEstaFranja = false
+
+estadoActual = surfeaArriba ? 1 : surfeaAbajo ? -1 : 0
+cambioDeFranja = estadoActual != dirActual
+
+// la franja que TERMINA hoy había entrado -> se marca la salida en esta barra
+// (mismo criterio que el script de Python: te enterás de que terminó recién
+// el día que cambia de color, no antes)
+marcarSalida = cambioDeFranja and entroEstaFranja
+
+if cambioDeFranja
+    dirActual := estadoActual
+    entroEstaFranja := false
+
+cumpleUmbral = math.abs(distATR) >= umbralAtr
+marcarEntrada = dirActual != 0 and not entroEstaFranja and cumpleUmbral
+if marcarEntrada
+    entroEstaFranja := true
+
+plotshape(marcarEntrada and dirActual == 1, style=shape.triangleup, location=location.belowbar,
+          color=color.new(color.lime, 0), size=size.tiny, title="Entra compra")
+plotshape(marcarEntrada and dirActual == -1, style=shape.triangledown, location=location.abovebar,
+          color=color.new(color.red, 0), size=size.tiny, title="Entra venta")
+plotshape(marcarSalida, style=shape.xcross, location=location.abovebar,
+          color=color.new(color.gray, 0), size=size.tiny, title="Sale")
+
+// Disponible en la ventana de datos (hover) para CUALQUIER vela histórica
+plot(distDolares, title="Distancia ($)", display=display.data_window)
+plot(distPct, title="Distancia (%)", display=display.data_window)
+plot(distATR, title="Distancia (ATR)", display=display.data_window)
+
+// Etiqueta visible en la última vela con el resumen
+var label etiqueta = na
+if barstate.islast
+    label.delete(etiqueta)
+    estadoTxt = surfeaArriba ? "surfea arriba" : surfeaAbajo ? "surfea abajo" : "TOCA"
+    txt = estadoTxt + "\n$" + str.tostring(distDolares, "#.##") + " (" + str.tostring(distATR, "#.##") + " ATR)"
+    etiqueta := label.new(bar_index, high + atr14, txt, style=label.style_label_down,
+                           color=color.new(color.blue, 0), textcolor=color.white, size=size.small)

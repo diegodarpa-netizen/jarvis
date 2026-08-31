@@ -1,0 +1,42 @@
+//@version=5
+// Línea continua de la distancia precio-EMA9, vela por vela -- a pedido de
+// Diego (14/08/2026). Va en panel aparte (no overlay) porque la escala de
+// la distancia no es la del precio -- así se ve siempre, no solo al pasar
+// el mouse. Misma fórmula que medir_distancia_ema9.py y
+// areas_distancia_ema9.py: distancia = (close - EMA9) / ATR14.
+//
+// La línea en 0 = precio tocando la EMA9. Arriba de 0 = surfeando arriba,
+// abajo de 0 = surfeando abajo. Las líneas punteadas horizontales marcan
+// las mismas bandas de envolvente_ema9_areas.pine (0,5 / 1 / 1,5 / 2 ATR),
+// para ver de un vistazo en qué "área" está el precio en cada momento.
+indicator("Distancia a EMA9 - línea continua (oro)", overlay=false)
+
+emaLen = input.int(9, "Período EMA")
+atrLen = input.int(14, "Período ATR")
+k1 = input.float(0.5, "Banda 1 (ATR)")
+k2 = input.float(1.0, "Banda 2 (ATR)")
+k3 = input.float(1.5, "Banda 3 (ATR)")
+k4 = input.float(2.0, "Banda 4 (ATR)")
+
+ema9 = ta.ema(close, emaLen)
+atr14 = ta.atr(atrLen)
+distATR = (close - ema9) / atr14
+
+// La línea continua en sí -- un valor por vela, conectados uno a uno
+plot(distATR, title="Distancia a EMA9 (ATR)", color=color.aqua, linewidth=2)
+
+// Referencia: 0 = tocando la EMA9
+hline(0, title="EMA9 (0)", color=color.orange, linestyle=hline.style_solid)
+
+// Bandas de referencia, mismos niveles que el envolvente visual
+hline(k1, title="+" + str.tostring(k1) + " ATR", color=color.new(color.green, 60), linestyle=hline.style_dotted)
+hline(k2, title="+" + str.tostring(k2) + " ATR", color=color.new(color.green, 50), linestyle=hline.style_dotted)
+hline(k3, title="+" + str.tostring(k3) + " ATR", color=color.new(color.green, 40), linestyle=hline.style_dotted)
+hline(k4, title="+" + str.tostring(k4) + " ATR", color=color.new(color.green, 30), linestyle=hline.style_dotted)
+hline(-k1, title="-" + str.tostring(k1) + " ATR", color=color.new(color.red, 60), linestyle=hline.style_dotted)
+hline(-k2, title="-" + str.tostring(k2) + " ATR", color=color.new(color.red, 50), linestyle=hline.style_dotted)
+hline(-k3, title="-" + str.tostring(k3) + " ATR", color=color.new(color.red, 40), linestyle=hline.style_dotted)
+hline(-k4, title="-" + str.tostring(k4) + " ATR", color=color.new(color.red, 30), linestyle=hline.style_dotted)
+
+// Sombreado leve de fondo según de qué lado está, para que se lea rápido
+bgcolor(distATR > 0 ? color.new(color.green, 92) : distATR < 0 ? color.new(color.red, 92) : na)

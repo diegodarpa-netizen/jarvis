@@ -1,0 +1,453 @@
+//@version=5
+// ═══════════════════════════════════════════════════════════════════════════
+// EstrategiaXAU -- v3 (30/08/2026), con todo lo calibrado contra las 191
+// operaciones reales de Fabian (27/10/2025-27/08/2026, 180/191 exacto, 94,2%)
+// Base: fabian_manual_strategy/base_conocimiento_NO_TOCAR/ (Plan Tecnico
+// actualizado 30-08-2026, Plan Operativo actualizado 30-08-2026, Apariencia
+// del indicador) + jarvis/trading/rules/ + respuestas de Fabian por WhatsApp.
+//
+// v3 (30/08/2026) -- correcciones encontradas en la calibracion vela por
+// vela (ver fabian_manual_strategy/seguimiento_vela_por_vela/README.md):
+//   - Doji (envolvente tipo 3) EXCLUIDO como señal valida standalone (Plan
+//     Tecnico: "es una vela de indecision, no de volumen") -- v2 lo dejaba
+//     pasar por error (esEnvolventeAlcista = envTipo > 0, incluia doji).
+//   - Patron START (morning/evening star) implementado de verdad: vela de
+//     entrada envolvente + vela anterior de indecision + vela pullback en
+//     contra 2 atras, invalidado si las 3 son del mismo color. v2 tenia una
+//     condicion redundante que en la practica nunca agregaba el patron START.
+//   - El quiebre de un nivel M3 (ChoC, MEC-A, MEC-B) se mide con la MECHA
+//     de la vela (high/low), no con el cierre -- confirmado en vivo por
+//     Fabian (caso 21/04/2026: "mide con el rango de precios de
+//     TradingView"). v2 usaba close.
+//   - Estetica nueva: sin triangulos ni etiquetas de precio -- lineas de
+//     entrada/SL/TP (solida blanca / punteada roja / punteada verde) que se
+//     extienden desde la entrada hasta el cierre, franjas de fondo por
+//     tendencia (verde/rojo tenue), y una etiqueta chica vertical con el
+//     color de la operacion (solo "BUY"/"SELL", sin precio).
+//
+// LIMITACIONES CONOCIDAS (leer antes de operar en real):
+//   - 8 de los 11 casos que no calzan exacto contra el historico real de
+//     Fabian se explican por diferencia de precio entre OANDA (su broker
+//     real) y la fuente de datos usada para calibrar (Dukascopy) -- correr
+//     este Pine sobre el grafico real de OANDA:XAUUSD en TradingView (no
+//     otro broker) para el numero de fidelidad mas alto posible.
+//   - No filtra noticias (Regla N°5 del Plan Operativo: bloqueo de ±3 min
+//     en noticias de mediano impacto) -- Pine no tiene calendario economico
+//     gratuito confiable, se sigue haciendo manual.
+//   - Usar esta estrategia SOLO en el timeframe M1 del grafico (la
+//     estructura se pide aparte en 3min via security, independiente del
+//     timeframe que tengas abierto, pero las entradas son logica M1).
+// ═══════════════════════════════════════════════════════════════════════════
+
+strategy("EstrategiaXAU", overlay=true,
+         default_qty_type=strategy.fixed, default_qty_value=1,
+         initial_capital=10000,
+         commission_type=strategy.commission.cash_per_order, commission_value=0.2,
+         max_labels_count=500, max_lines_count=500)
+
+// ─── INPUTS ──────────────────────────────────────────────────────────────
+grp_ses = "Sesion y riesgo"
+RR              = input.float(0.9, "Risk/Reward (TP = SL x RR)", step=0.05, group=grp_ses)
+MIN_BREAK_PCT   = input.float(0.01, "Ruptura minima valida (%)", step=0.005, group=grp_ses) / 100
+MAX_SL_PIPS     = input.int(20000, "SL maximo antes de reducir 40% (pips = precio x100)", group=grp_ses)
+DAILY_MAX_SL    = 2   // regla fija del Plan Operativo: 2 SL detiene el dia
+SHOW_LEVELS     = input.bool(true, "Mostrar niveles M3 (lineas)", group=grp_ses)
+SHOW_TRADE_LINES = input.bool(true, "Mostrar lineas de entrada/SL/TP", group=grp_ses)
+SHOW_TREND_BG   = input.bool(true, "Mostrar franjas de fondo por tendencia", group=grp_ses)
+SHOW_LABELS     = input.bool(true, "Mostrar etiqueta BUY/SELL", group=grp_ses)
+ALLOW_HEDGE     = input.bool(true, "Permitir Hedge Position", group=grp_ses)
+
+grp_periodo = "Periodo de comparacion (Fase 2 -- vs. historico real de Fabian)"
+FECHA_INICIO = input.time(timestamp("2025-10-27 00:00 -0400"), "Inicio del backtest", group=grp_periodo)
+FECHA_FIN    = input.time(timestamp("2026-08-27 23:59 -0400"), "Fin del backtest", group=grp_periodo)
+enRangoComparacion = time >= FECHA_INICIO and time <= FECHA_FIN
+
+grp_vela = "Umbrales de vela (Plan Tecnico)"
+ENV_CLASICA_MIN   = input.float(85.0, "Envolvente clasica: cuerpo minimo %", group=grp_vela) / 100
+ENV_MARTILLO_MIN  = input.float(50.0, "Envolvente martillo: cuerpo minimo %", group=grp_vela) / 100
+ENV_MARTILLO_MAX  = ENV_CLASICA_MIN
+ENV_DOJI_MIN      = input.float(15.0, "Envolvente doji: mecha minima %", group=grp_vela) / 100
+ENV_DOJI_MAX      = ENV_CLASICA_MIN
+INDECISION_MAX    = input.float(50.0, "Vela indecision (Start): cuerpo maximo %", group=grp_vela) / 100
+
+// ─── SESION NY (09:01-10:59, ajuste automatico de horario) ────────────────
+sess = time(timeframe.period, "0901-1059", "America/New_York")
+inSession = not na(sess)
+bgcolor(inSession ? color.new(color.blue, 95) : na, title="Sesion NY")
+
+// ─── FUNCIONES BASE DE VELA ────────────────────────────────────────────────
+f_bodySize(o, c) => math.abs(c - o)
+f_totalSize(h, l) => h - l
+f_bodyPct(o, h, l, c) => f_totalSize(h, l) > 0 ? f_bodySize(o, c) / f_totalSize(h, l) : 0.0
+f_upperWickPct(o, h, l, c) => f_totalSize(h, l) > 0 ? (h - math.max(o, c)) / f_totalSize(h, l) : 0.0
+f_lowerWickPct(o, h, l, c) => f_totalSize(h, l) > 0 ? (math.min(o, c) - l) / f_totalSize(h, l) : 0.0
+f_isBull(o, c) => c > o
+f_isBear(o, c) => c < o
+
+// ─── PATRON ENVOLVENTE -- 3 variantes (Plan Tecnico pag. 5-9), parametrizada
+// para poder evaluarla tambien en velas anteriores (offset), necesario para
+// el patron START. Devuelve: 0 = no valida, 1 = clasica, 2 = martillo, 3 = doji
+f_tipoEnvolventeAlcista(o, h, l, c) =>
+    bp = f_bodyPct(o, h, l, c)
+    wOpuesta = f_upperWickPct(o, h, l, c)
+    wFavor   = f_lowerWickPct(o, h, l, c)
+    bull = f_isBull(o, c)
+    tipo = 0
+    if bull
+        if bp >= ENV_CLASICA_MIN and wOpuesta < ENV_DOJI_MIN
+            tipo := 1
+        else if bp >= ENV_MARTILLO_MIN and bp < ENV_MARTILLO_MAX and wOpuesta >= ENV_DOJI_MIN
+            tipo := 2
+        else if wOpuesta >= ENV_DOJI_MIN and wOpuesta <= ENV_CLASICA_MIN and wFavor >= ENV_DOJI_MIN and wFavor <= ENV_CLASICA_MIN
+            tipo := 3
+    tipo
+
+f_tipoEnvolventeBajista(o, h, l, c) =>
+    bp = f_bodyPct(o, h, l, c)
+    wOpuesta = f_lowerWickPct(o, h, l, c)
+    wFavor   = f_upperWickPct(o, h, l, c)
+    bear = f_isBear(o, c)
+    tipo = 0
+    if bear
+        if bp >= ENV_CLASICA_MIN and wOpuesta < ENV_DOJI_MIN
+            tipo := 1
+        else if bp >= ENV_MARTILLO_MIN and bp < ENV_MARTILLO_MAX and wOpuesta >= ENV_DOJI_MIN
+            tipo := 2
+        else if wOpuesta >= ENV_DOJI_MIN and wOpuesta <= ENV_CLASICA_MIN and wFavor >= ENV_DOJI_MIN and wFavor <= ENV_CLASICA_MIN
+            tipo := 3
+    tipo
+
+envTipoAlcista = f_tipoEnvolventeAlcista(open, high, low, close)
+envTipoBajista = f_tipoEnvolventeBajista(open, high, low, close)
+// CORREGIDO v3: doji (tipo 3) NO es una señal valida standalone -- solo
+// clasica (1) o martillo (2) disparan entrada (Plan Tecnico, pag.6).
+esEnvolventeAlcista = envTipoAlcista == 1 or envTipoAlcista == 2
+esEnvolventeBajista = envTipoBajista == 1 or envTipoBajista == 2
+
+// ─── VELA DE INDECISION -- doji / pinbar (Plan Tecnico pag. 10-12), tambien
+// parametrizada para evaluarla en velas anteriores (patron START) ─────────
+f_esIndecision(o, h, l, c) =>
+    bp = f_bodyPct(o, h, l, c)
+    tipoA = f_tipoEnvolventeAlcista(o, h, l, c)
+    tipoB = f_tipoEnvolventeBajista(o, h, l, c)
+    esMartillo = tipoA == 2 or tipoB == 2
+    bp <= INDECISION_MAX and not esMartillo
+
+esIndecision = f_esIndecision(open, high, low, close)
+
+// ─── PATRON START (morning/evening star) -- CORREGIDO v3, calibrado contra
+// el caso real 12/02/2026 09:03 de Fabian. Vela de entrada (actual) debe
+// ser envolvente en la direccion buscada; la vela anterior [1] debe ser de
+// indecision; la vela 2 atras [2] debe ir EN CONTRA de la direccion final
+// (pullback); invalido si las 3 velas son del mismo color (Plan Tecnico
+// pag.16, punto iv). direccion: 1 = alcista (buy), -1 = bajista (sell) ────
+f_esStart(direccion) =>
+    tipo = direccion == 1 ? f_tipoEnvolventeAlcista(open, high, low, close) : f_tipoEnvolventeBajista(open, high, low, close)
+    valido = (tipo == 1 or tipo == 2)
+    if valido
+        indecisionPrev = f_esIndecision(open[1], high[1], low[1], close[1])
+        valido := indecisionPrev
+    if valido
+        pullbackOk = direccion == 1 ? f_isBear(open[2], close[2]) : f_isBull(open[2], close[2])
+        valido := pullbackOk
+    if valido
+        color0 = close > open
+        color1 = close[1] > open[1]
+        color2 = close[2] > open[2]
+        if color0 == color1 and color1 == color2
+            valido := false
+    valido
+
+startAlcista = f_esStart(1)
+startBajista = f_esStart(-1)
+// patron valido para MEC = Envolvente O Start (MER nunca usa Start, Plan
+// Tecnico pag.25: "no se ejecutaran patrones... START... exclusivamente en
+// el volumen y diseño de la primera vela que entra en contacto con m3")
+patronAlcistaMEC = esEnvolventeAlcista or startAlcista
+patronBajistaMEC = esEnvolventeBajista or startBajista
+
+// ─── ESTRUCTURA M3 -- leida del timeframe de 3 MINUTOS real, sin repaint ──
+// (Plan Tecnico pag.1: "la estructura de mercado se observa y grafica en
+// m3"). Se piden SIEMPRE velas ya cerradas ([1] y [2] dentro del contexto
+// de 3min) para que nunca cambie retroactivamente.
+m3_o1 = request.security(syminfo.tickerid, "3", open[1],  lookahead=barmerge.lookahead_off)
+m3_h1 = request.security(syminfo.tickerid, "3", high[1],  lookahead=barmerge.lookahead_off)
+m3_l1 = request.security(syminfo.tickerid, "3", low[1],   lookahead=barmerge.lookahead_off)
+m3_c1 = request.security(syminfo.tickerid, "3", close[1], lookahead=barmerge.lookahead_off)
+m3_o2 = request.security(syminfo.tickerid, "3", open[2],  lookahead=barmerge.lookahead_off)
+m3_h2 = request.security(syminfo.tickerid, "3", high[2],  lookahead=barmerge.lookahead_off)
+m3_l2 = request.security(syminfo.tickerid, "3", low[2],   lookahead=barmerge.lookahead_off)
+m3_c2 = request.security(syminfo.tickerid, "3", close[2], lookahead=barmerge.lookahead_off)
+
+m3AltoCandidato      = f_isBull(m3_o2, m3_c2) and f_isBear(m3_o1, m3_c1)
+m3BajoCandidato      = f_isBear(m3_o2, m3_c2) and f_isBull(m3_o1, m3_c1)
+m3AltoLevelCandidato = math.max(m3_h2, m3_h1)
+m3BajoLevelCandidato = math.min(m3_l2, m3_l1)
+
+var float altoM3Level = na
+var float bajoM3Level = na
+var float altoM3Prev  = na   // nivel anterior, para chequear ambiguedad MER
+var float bajoM3Prev  = na
+
+// solo se cuenta como "nuevo pivote" cuando el nivel candidato cambia --
+// evita re-disparar 3 veces (una por cada vela M1 dentro del mismo 3min)
+isAltoM3 = m3AltoCandidato and (na(altoM3Level) or m3AltoLevelCandidato != altoM3Level)
+isBajoM3 = m3BajoCandidato and (na(bajoM3Level) or m3BajoLevelCandidato != bajoM3Level)
+
+if isAltoM3
+    altoM3Prev  := altoM3Level
+    altoM3Level := m3AltoLevelCandidato
+if isBajoM3
+    bajoM3Prev  := bajoM3Level
+    bajoM3Level := m3BajoLevelCandidato
+
+// ─── VISUALIZACION -- rayitas cortas por cada alto/bajo M3, igual que en
+// el grafico real de Fabian (30/08/2026: "marca los altos y bajos con una
+// linea continua chiquita", NO una linea que se estira todo el grafico).
+// No se borran las anteriores -- quedan todas visibles como mapa de
+// estructura, hasta el limite de max_lines_count.
+LINE_LEN_BARS = input.int(12, "Largo de la rayita de nivel M3 (barras)", group="Sesion y riesgo")
+var line lineAlto = na  // referencia SOLO a la mas reciente, para el cambio a solido en el ChoC
+var line lineBajo = na
+
+if isAltoM3 and SHOW_LEVELS
+    lineAlto := line.new(bar_index, altoM3Level, bar_index + LINE_LEN_BARS, altoM3Level,
+                          color=color.new(color.red, 25), width=1, style=line.style_dashed)
+if isBajoM3 and SHOW_LEVELS
+    lineBajo := line.new(bar_index, bajoM3Level, bar_index + LINE_LEN_BARS, bajoM3Level,
+                          color=color.new(color.green, 25), width=1, style=line.style_dashed)
+
+// ─── ESTRUCTURA: tendencia (punteada) vs Cambio de Estructura/ChOC (continua) ──
+// CORREGIDO v3: el quiebre se mide con la MECHA (high/low), no el cierre.
+var int   tendState   = 0
+var float ultimoQuiebreLevel = na
+var bool  chocAlcistaNuevo = false
+var bool  chocBajistaNuevo = false
+
+chocAlcistaNuevo := false
+chocBajistaNuevo := false
+
+f_rompioArribaMecha(nivel) => not na(nivel) and high > nivel * (1 + MIN_BREAK_PCT)
+f_rompioAbajoMecha(nivel)  => not na(nivel) and low  < nivel * (1 - MIN_BREAK_PCT)
+
+if tendState <= 0 and f_rompioArribaMecha(altoM3Level)
+    chocAlcistaNuevo := true
+    tendState := 1
+    ultimoQuiebreLevel := altoM3Level
+    if not na(lineAlto)
+        line.set_style(lineAlto, line.style_solid)
+        line.set_width(lineAlto, 2)
+        line.set_color(lineAlto, color.new(color.lime, 5))
+else if tendState == 1 and f_rompioArribaMecha(altoM3Level)
+    ultimoQuiebreLevel := altoM3Level
+
+if tendState >= 0 and f_rompioAbajoMecha(bajoM3Level)
+    chocBajistaNuevo := true
+    tendState := -1
+    ultimoQuiebreLevel := bajoM3Level
+    if not na(lineBajo)
+        line.set_style(lineBajo, line.style_solid)
+        line.set_width(lineBajo, 2)
+        line.set_color(lineBajo, color.new(color.red, 5))
+else if tendState == -1 and f_rompioAbajoMecha(bajoM3Level)
+    ultimoQuiebreLevel := bajoM3Level
+
+// ─── FRANJAS DE FONDO POR TENDENCIA (aprobado en apariencia_labels.md) ────
+bgcolor(SHOW_TREND_BG and tendState == 1 ? color.new(color.green, 88) : na, title="Tendencia alcista")
+bgcolor(SHOW_TREND_BG and tendState == -1 ? color.new(color.red, 88) : na, title="Tendencia bajista")
+
+// ─── MEC escenario b: Quiebre - Pullback - Continuacion (estado, en M1) ──
+var int   mecFaseAlcista = 0
+var float mecExtremoPrePullback = na
+var int   mecFaseBajista = 0
+var float mecExtremoPrePullbackB = na
+
+if chocAlcistaNuevo
+    mecFaseAlcista := 1
+    mecExtremoPrePullback := high
+else if mecFaseAlcista == 1
+    if f_isBear(open, close)
+        mecFaseAlcista := 2
+    else
+        mecExtremoPrePullback := math.max(mecExtremoPrePullback, high)
+
+if chocBajistaNuevo
+    mecFaseBajista := 1
+    mecExtremoPrePullbackB := low
+else if mecFaseBajista == 1
+    if f_isBull(open, close)
+        mecFaseBajista := 2
+    else
+        mecExtremoPrePullbackB := math.min(mecExtremoPrePullbackB, low)
+
+// ─── GESTION DE RIESGO: limite diario real (3 escenarios del Plan Operativo) ──
+var int   diaActual     = na
+var int   slHoy         = 0
+var int   tpHoy         = 0
+var bool  diaDetenido   = false
+var float weeklyR       = 0.0
+var int   semanaActual  = na
+
+nuevoDia = dayofmonth != diaActual or na(diaActual)
+if nuevoDia
+    diaActual   := dayofmonth
+    slHoy       := 0
+    tpHoy       := 0
+    diaDetenido := false
+
+nuevaSemana = weekofyear != semanaActual or na(semanaActual)
+if nuevaSemana
+    semanaActual := weekofyear
+    weeklyR      := 0.0
+
+if tpHoy >= 1 or slHoy >= DAILY_MAX_SL
+    diaDetenido := true
+
+canTrade = inSession and not diaDetenido and enRangoComparacion
+
+// ─── VALIDACION: un unico nivel M3 opuesto activo (Plan Tecnico pag. 26) ──
+f_nivelMERValido(nivelActual, nivelPrevio) =>
+    na(nivelPrevio) or math.abs(nivelActual - nivelPrevio) / nivelActual <= MIN_BREAK_PCT
+
+// ─── ENTRADAS ──────────────────────────────────────────────────────────────
+enPosicion = strategy.position_size != 0
+puedeAbrir = canTrade and (not enPosicion or ALLOW_HEDGE)
+
+// CORREGIDO v3: usa patronAlcistaMEC/patronBajistaMEC (Envolvente real,
+// sin doji, O Start calibrado) -- v2 tenia una condicion redundante que
+// en la practica nunca agregaba el patron START a la entrada.
+mecA_Long  = puedeAbrir and tendState == 1 and f_rompioArribaMecha(ultimoQuiebreLevel) and patronAlcistaMEC
+mecA_Short = puedeAbrir and tendState == -1 and f_rompioAbajoMecha(ultimoQuiebreLevel) and patronBajistaMEC
+
+mecB_Long  = puedeAbrir and mecFaseAlcista == 2 and f_rompioArribaMecha(mecExtremoPrePullback) and patronAlcistaMEC
+mecB_Short = puedeAbrir and mecFaseBajista == 2 and f_rompioAbajoMecha(mecExtremoPrePullbackB) and patronBajistaMEC
+
+mecLong  = mecA_Long or mecB_Long
+mecShort = mecA_Short or mecB_Short
+
+if mecB_Long or chocBajistaNuevo
+    mecFaseAlcista := 0
+    mecExtremoPrePullback := na
+if mecB_Short or chocAlcistaNuevo
+    mecFaseBajista := 0
+    mecExtremoPrePullbackB := na
+
+// MER: nunca usa Start (solo Envolvente clasica/martillo, sin doji)
+merLong  = puedeAbrir and chocAlcistaNuevo and esEnvolventeAlcista and f_nivelMERValido(altoM3Level, altoM3Prev) and not mecLong
+merShort = puedeAbrir and chocBajistaNuevo and esEnvolventeBajista and f_nivelMERValido(bajoM3Level, bajoM3Prev) and not mecShort
+
+// ─── SL / TP (Plan Tecnico pag. 30-31) ────────────────────────────────────
+f_calcSL(nivel, esCompra) =>
+    dist = esCompra ? close - nivel : nivel - close
+    distPips = dist * 100
+    distFinal = distPips > MAX_SL_PIPS ? dist * 0.6 : dist
+    distFinal
+
+// ─── VISUALIZACION DE LA OPERACION -- lineas + etiqueta chica de direccion
+// (rediseño 30/08/2026, sin triangulos, sin cartel de precio) ─────────────
+var line lineEntrada = na
+var line lineSL      = na
+var line lineTP      = na
+
+f_cerrarLineasTrade() =>
+    if not na(lineEntrada)
+        line.delete(lineEntrada)
+    if not na(lineSL)
+        line.delete(lineSL)
+    if not na(lineTP)
+        line.delete(lineTP)
+
+f_dibujarEtiquetaDireccion(esCompra) =>
+    txt = esCompra ? "BUY" : "SELL"
+    col = esCompra ? color.new(color.green, 0) : color.new(color.red, 0)
+    yPos = esCompra ? low - (high - low) * 0.6 : high + (high - low) * 0.6
+    label.new(bar_index, yPos, txt, color=col, textcolor=color.white,
+              style=label.style_label_up, size=size.tiny, text_font_family=font.family_default)
+
+// ─── EJECUCION ─────────────────────────────────────────────────────────────
+if mecLong or merLong
+    slNivel = bajoM3Level
+    slDist  = f_calcSL(slNivel, true)
+    slPrice = close - slDist
+    tpPrice = close + slDist * RR
+    modelo  = mecA_Long ? "MEC-A" : mecB_Long ? "MEC-B" : "MER"
+    patron  = esEnvolventeAlcista ? (envTipoAlcista == 1 ? "Envolvente" : "Env. Martillo") : "START"
+
+    if enPosicion and ALLOW_HEDGE
+        strategy.close_all(comment="Cierre por Hedge")
+    strategy.entry("LONG", strategy.long)
+    strategy.exit("SL/TP L", "LONG", stop=slPrice, limit=tpPrice)
+
+    if SHOW_TRADE_LINES
+        f_cerrarLineasTrade()
+        lineEntrada := line.new(bar_index, close, bar_index, close, color=color.new(color.white, 10), width=1, style=line.style_solid)
+        lineSL      := line.new(bar_index, slPrice, bar_index, slPrice, color=color.new(color.red, 10), width=1, style=line.style_dashed)
+        lineTP      := line.new(bar_index, tpPrice, bar_index, tpPrice, color=color.new(color.green, 10), width=1, style=line.style_dashed)
+    if SHOW_LABELS
+        f_dibujarEtiquetaDireccion(true)
+
+if mecShort or merShort
+    slNivel = altoM3Level
+    slDist  = f_calcSL(slNivel, false)
+    slPrice = close + slDist
+    tpPrice = close - slDist * RR
+    modelo  = mecA_Short ? "MEC-A" : mecB_Short ? "MEC-B" : "MER"
+    patron  = esEnvolventeBajista ? (envTipoBajista == 1 ? "Envolvente" : "Env. Martillo") : "START"
+
+    if enPosicion and ALLOW_HEDGE
+        strategy.close_all(comment="Cierre por Hedge")
+    strategy.entry("SHORT", strategy.short)
+    strategy.exit("SL/TP S", "SHORT", stop=slPrice, limit=tpPrice)
+
+    if SHOW_TRADE_LINES
+        f_cerrarLineasTrade()
+        lineEntrada := line.new(bar_index, close, bar_index, close, color=color.new(color.white, 10), width=1, style=line.style_solid)
+        lineSL      := line.new(bar_index, slPrice, bar_index, slPrice, color=color.new(color.red, 10), width=1, style=line.style_dashed)
+        lineTP      := line.new(bar_index, tpPrice, bar_index, tpPrice, color=color.new(color.green, 10), width=1, style=line.style_dashed)
+    if SHOW_LABELS
+        f_dibujarEtiquetaDireccion(false)
+
+// estirar las lineas de la operacion activa hasta la barra actual
+if SHOW_TRADE_LINES and enPosicion
+    if not na(lineEntrada)
+        line.set_x2(lineEntrada, bar_index)
+    if not na(lineSL)
+        line.set_x2(lineSL, bar_index)
+    if not na(lineTP)
+        line.set_x2(lineTP, bar_index)
+
+// ─── TRACKING de resultados para el limite diario / semanal ──────────────
+if strategy.closedtrades > 0 and strategy.closedtrades != strategy.closedtrades[1]
+    ultimoResultado = strategy.closedtrades.profit(strategy.closedtrades - 1)
+    if ultimoResultado < 0
+        slHoy   := slHoy + 1
+        weeklyR := weeklyR - 1.0
+    else if ultimoResultado > 0
+        tpHoy   := tpHoy + 1
+        weeklyR := weeklyR + RR
+
+// ─── TABLA DE ESTADISTICAS ─────────────────────────────────────────────────
+var table statsTable = table.new(position.top_right, 2, 7,
+                                  bgcolor=color.new(color.black, 70),
+                                  border_color=color.new(color.gray, 50), border_width=1)
+if barstate.islast
+    totalTrades = strategy.closedtrades
+    wins        = strategy.wintrades
+    losses      = strategy.losstrades
+    winRate     = totalTrades > 0 ? wins / totalTrades * 100 : 0.0
+    netProfit   = strategy.netprofit
+
+    table.cell(statsTable, 0, 0, "EstrategiaXAU v3", text_color=color.white, bgcolor=color.new(color.blue, 50), text_size=size.small)
+    table.cell(statsTable, 1, 0, "Stats", text_color=color.white, bgcolor=color.new(color.blue, 50), text_size=size.small)
+    table.cell(statsTable, 0, 1, "Total Trades", text_color=color.gray, text_size=size.small)
+    table.cell(statsTable, 1, 1, str.tostring(totalTrades), text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 0, 2, "Win Rate", text_color=color.gray, text_size=size.small)
+    table.cell(statsTable, 1, 2, str.tostring(math.round(winRate, 1)) + "%", text_color=winRate >= 55 ? color.green : color.red, text_size=size.small)
+    table.cell(statsTable, 0, 3, "Wins / Losses", text_color=color.gray, text_size=size.small)
+    table.cell(statsTable, 1, 3, str.tostring(wins) + " / " + str.tostring(losses), text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 0, 4, "Net Profit", text_color=color.gray, text_size=size.small)
+    table.cell(statsTable, 1, 4, str.tostring(math.round(netProfit, 2)), text_color=netProfit >= 0 ? color.green : color.red, text_size=size.small)
+    table.cell(statsTable, 0, 5, "SL hoy / TP hoy", text_color=color.gray, text_size=size.small)
+    table.cell(statsTable, 1, 5, str.tostring(slHoy) + " / " + str.tostring(tpHoy), text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 0, 6, "R semana", text_color=color.gray, text_size=size.small)
+    table.cell(statsTable, 1, 6, str.tostring(math.round(weeklyR, 2)) + "R", text_color=weeklyR >= 2 ? color.green : color.white, text_size=size.small)

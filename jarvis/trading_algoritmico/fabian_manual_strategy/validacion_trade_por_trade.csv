@@ -1,0 +1,124 @@
+fecha,hora,modelo,patron_declarado,direccion,resultado_real,R,vela_open,vela_high,vela_low,vela_close,tipo_detectado_codigo,motivo_codigo,coincide_con_codigo
+17/02/2026,09:33,MER,MER-sin-patron,Sell,Take Profit,1.0,4894.83,4899.3,4887.52,4888.5,0,"no cumple ningun umbral (cuerpo=54%, mecha_op=8%)",
+18/02/2026,09:31,MEC,Envolvente,Buy,Take Profit,1.0,4960.48,4968.0,4960.48,4967.96,1,Envolvente clasica,True
+19/02/2026,09:07,MEC,START,Sell,Take Profit,1.0,4997.27,4997.77,4996.82,4997.23,3,Envolvente doji,
+20/02/2026,10:02,MER,MER-sin-patron,Sell,Take Profit,1.0,5063.38,5064.27,5039.4,5039.56,1,Envolvente clasica,
+23/02/2026,09:12,MEC,START,Buy,Take Profit,1.0,5149.71,5153.16,5149.54,5153.16,1,Envolvente clasica,
+24/02/2026,09:38,MEC,Envolvente,Buy,Take Profit,1.0,5125.2,5133.07,5124.88,5132.53,1,Envolvente clasica,True
+25/02/2026,09:23,MEC,Envolvente,Sell,Take Profit,1.0,5185.84,5186.94,5184.87,5185.29,3,Envolvente doji,True
+26/02/2026,09:22,MER,MER-sin-patron,Buy,Stop Loss,-1.0,5165.38,5170.28,5165.38,5169.45,2,Envolvente martillo,
+26/02/2026,10:27,MEC,Envolvente,Sell,Stop Loss,-1.0,5154.8,5154.98,5130.4,5132.77,1,Envolvente clasica,True
+02/03/2026,09:04,MEC,START,Sell,Take Profit,1.0,5385.65,5387.14,5376.83,5377.11,0,"no cumple ningun umbral (cuerpo=83%, mecha_op=3%)",
+03/03/2026,10:37,MER,MER-sin-patron,Buy,Take Profit,1.0,5052.12,5064.61,5051.81,5064.34,1,Envolvente clasica,
+05/03/2026,09:04,MER,MER-sin-patron,Buy,Stop Loss,-1.0,5118.87,5129.91,5118.42,5129.12,1,Envolvente clasica,
+05/03/2026,10:01,MEC,START,Buy,Stop Loss,-1.0,5105.16,5117.2,5104.35,5117.05,1,Envolvente clasica,
+09/03/2026,09:41,MER,MER-sin-patron,Sell,Take Profit,1.0,5090.87,5090.87,5082.24,5083.12,1,Envolvente clasica,
+09/03/2026,09:30,MER,MER-sin-patron,Buy,Stop Loss,-1.0,5094.66,5104.52,5091.84,5104.16,0,"no cumple ningun umbral (cuerpo=75%, mecha_op=3%)",
+10/03/2026,09:21,MEC,Envolvente,Buy,Stop Loss,-1.0,5213.55,5217.84,5212.98,5217.69,1,Envolvente clasica,True
+10/03/2026,10:07,MEC,START,Sell,Stop Loss,-1.0,5201.01,5201.14,5188.46,5188.62,1,Envolvente clasica,
+12/03/2026,09:15,MEC,Envolvente,Sell,Take Profit,1.0,5184.66,5184.66,5176.14,5176.93,1,Envolvente clasica,True
+13/03/2026,09:25,MEC,START,Sell,Take Profit,1.0,5113.62,5114.04,5108.1,5109.04,2,Envolvente martillo,
+16/03/2026,09:28,MER,MER-sin-patron,Sell,Stop Loss,-1.0,5023.61,5023.71,5020.47,5020.49,1,Envolvente clasica,
+16/03/2026,10:19,MEC,Envolvente,Sell,Take Profit,1.0,5028.18,5028.64,5024.26,5024.64,0,"no cumple ningun umbral (cuerpo=81%, mecha_op=9%)",False
+17/03/2026,09:01,MER,MER-sin-patron,Buy,Take Profit,1.0,5011.84,5015.27,5011.09,5015.27,0,"no cumple ningun umbral (cuerpo=82%, mecha_op=0%)",
+18/03/2026,10:20,MER,MER-sin-patron,Sell,Take Profit,0.0,4872.94,4873.58,4867.97,4868.14,1,Envolvente clasica,
+18/03/2026,10:05,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4884.21,4892.93,4884.2,4892.71,1,Envolvente clasica,
+18/03/2026,10:45,MER,MER-sin-patron,Buy,Take Profit,1.0,4861.26,4867.09,4860.94,4866.5,1,Envolvente clasica,
+20/03/2026,09:10,MEC,Envolvente,Sell,Take Profit,1.0,4665.04,4666.04,4655.25,4656.78,0,"no cumple ningun umbral (cuerpo=77%, mecha_op=14%)",False
+23/03/2026,10:15,MEC,Envolvente,Buy,Take Profit,1.0,4464.54,4482.67,4461.36,4482.02,0,"no cumple ningun umbral (cuerpo=82%, mecha_op=3%)",False
+24/03/2026,10:10,MEC,START,Buy,Take Profit,1.0,4397.76,4404.48,4396.58,4404.48,1,Envolvente clasica,
+25/03/2026,09:45,MEC,Envolvente,Sell,Take Profit,1.0,4561.46,4563.95,4555.21,4556.34,0,"no cumple ningun umbral (cuerpo=59%, mecha_op=13%)",False
+26/03/2026,09:44,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4444.09,4453.79,4441.99,4453.79,0,"no cumple ningun umbral (cuerpo=82%, mecha_op=0%)",
+27/03/2026,09:09,MEC,Envolvente,Sell,Take Profit,1.0,4438.87,4439.23,4437.43,4438.05,3,Envolvente doji,True
+30/03/2026,09:05,MER,MER-sin-patron,Sell,Take Profit,1.0,4570.81,4572.74,4567.31,4567.73,0,"no cumple ningun umbral (cuerpo=57%, mecha_op=8%)",
+31/03/2026,09:25,MER,MER-sin-patron,Sell,Take Profit,1.0,4583.72,4583.72,4579.35,4579.37,1,Envolvente clasica,
+31/03/2026,09:09,MER,MER-sin-patron,Buy,Stop Loss,-0.14,4577.6,4581.5,4576.02,4581.46,0,"no cumple ningun umbral (cuerpo=70%, mecha_op=1%)",
+01/04/2026,10:45,MEC,START,Buy,Take Profit,1.0,4754.25,4757.13,4753.88,4756.92,0,"no cumple ningun umbral (cuerpo=82%, mecha_op=6%)",
+02/04/2026,09:41,MER,MER-sin-patron,Buy,Take Profit,1.0,4589.89,4602.63,4589.68,4602.06,1,Envolvente clasica,
+06/04/2026,09:24,MER,MER-sin-patron,Buy,Take Profit,1.0,4669.2,4672.96,4669.13,4672.91,1,Envolvente clasica,
+07/04/2026,09:54,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4648.24,4652.88,4647.65,4652.43,0,"no cumple ningun umbral (cuerpo=80%, mecha_op=9%)",
+07/04/2026,10:01,MER,MER-sin-patron,Sell,Take Profit,1.0,4637.87,4640.21,4634.96,4635.37,0,"no cumple ningun umbral (cuerpo=48%, mecha_op=8%)",
+08/04/2026,09:10,MER,MER-sin-patron,Sell,Take Profit,1.0,4797.99,4798.26,4793.36,4793.45,1,Envolvente clasica,
+09/04/2026,09:33,MER,MER-sin-patron,Buy,Take Profit,1.0,4751.66,4757.62,4751.6,4757.22,1,Envolvente clasica,
+13/04/2026,10:17,MEC,Envolvente,Sell,Take Profit,1.0,4722.99,4723.6,4719.42,4719.42,1,Envolvente clasica,True
+13/04/2026,09:47,MEC,Envolvente,Sell,Stop Loss,-1.0,4727.69,4727.82,4723.04,4723.34,1,Envolvente clasica,True
+14/04/2026,09:19,MEC,Envolvente,Buy,Take Profit,1.0,4770.96,4771.89,4770.96,4771.63,2,Envolvente martillo,True
+15/04/2026,09:57,MEC,START,Buy,Stop Loss,-1.0,4825.58,4830.3,4824.84,4829.97,0,"no cumple ningun umbral (cuerpo=80%, mecha_op=6%)",
+15/04/2026,10:30,MEC,Envolvente,Sell,Take Profit,1.0,4825.41,4825.81,4820.8,4820.8,1,Envolvente clasica,True
+16/04/2026,09:34,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4816.5,4822.29,4816.48,4821.93,1,Envolvente clasica,
+17/04/2026,09:06,MEC,Envolvente,Buy,Take Profit,1.0,4841.84,4850.77,4841.62,4849.96,1,Envolvente clasica,True
+21/04/2026,09:05,MER,MER-sin-patron,Sell,Take Profit,1.0,4779.38,4779.81,4775.82,4775.93,1,Envolvente clasica,
+22/04/2026,09:28,MER,MER-sin-patron,Buy,Take Profit,1.0,4746.61,4749.56,4746.56,4749.4,1,Envolvente clasica,
+23/04/2026,09:16,MER,MER-sin-patron,Buy,Take Profit,1.0,4728.23,4730.6,4728.01,4730.1,2,Envolvente martillo,
+24/04/2026,09:21,MER,MER-sin-patron,Sell,Take Profit,1.0,4700.43,4701.18,4699.94,4700.82,0,vela no es del color esperado,
+27/04/2026,09:16,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4699.13,4700.88,4698.52,4700.66,0,"no cumple ningun umbral (cuerpo=65%, mecha_op=9%)",
+27/04/2026,10:26,MER,MER-sin-patron,Sell,Stop Loss,-0.17,4692.96,4693.16,4689.51,4689.77,1,Envolvente clasica,
+29/04/2026,09:38,MEC,Envolvente,Sell,Take Profit,1.0,4532.81,4533.54,4528.59,4529.54,2,Envolvente martillo,True
+30/04/2026,09:34,MEC,START,Sell,Take Profit,1.0,4630.66,4632.53,4628.54,4628.88,0,"no cumple ningun umbral (cuerpo=45%, mecha_op=9%)",
+01/05/2026,09:16,MEC,START,Sell,Stop Loss,-1.0,4590.62,4590.74,4588.4,4588.48,1,Envolvente clasica,
+01/05/2026,09:52,MEC,Envolvente,Buy,Take Profit,1.0,4607.54,4611.9,4606.36,4611.9,0,"no cumple ningun umbral (cuerpo=79%, mecha_op=0%)",False
+04/05/2026,09:32,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4557.7,4567.75,4556.7,4567.22,1,Envolvente clasica,
+04/05/2026,10:15,MEC,Envolvente,Buy,Take Profit,1.0,4565.72,4565.74,4563.94,4564.14,0,vela no es del color esperado,False
+05/05/2026,09:24,MER,MER-sin-patron,Sell,Take Profit,1.0,4580.38,4580.43,4576.31,4576.77,1,Envolvente clasica,
+06/05/2026,09:53,MEC,Envolvente,Buy,Take Profit,1.0,4698.07,4704.2,4697.77,4703.34,0,"no cumple ningun umbral (cuerpo=82%, mecha_op=13%)",False
+07/05/2026,09:13,MEC,Envolvente,Sell,Stop Loss,-1.0,4736.16,4736.16,4731.28,4731.66,1,Envolvente clasica,True
+07/05/2026,09:21,MER,MER-sin-patron,Buy,Take Profit,1.0,4740.2,4743.18,4738.3,4743.18,0,"no cumple ningun umbral (cuerpo=61%, mecha_op=0%)",
+11/05/2026,09:04,MEC,Envolvente,Buy,Take Profit,1.0,4706.23,4710.11,4705.88,4710.07,1,Envolvente clasica,True
+13/05/2026,09:18,MEC,START,Buy,Stop Loss,-1.0,4687.33,4691.92,4687.1,4691.92,1,Envolvente clasica,
+13/05/2026,10:31,MEC,Envolvente,Buy,Take Profit,1.0,4683.8,4689.47,4683.73,4688.56,2,Envolvente martillo,True
+14/05/2026,09:29,MEC,Envolvente,Sell,Take Profit,1.0,4691.9,4692.16,4688.08,4688.32,1,Envolvente clasica,True
+15/05/2026,09:37 ,MER,MER-sin-patron,Sell,Take Profit,1.0,4538.61,4539.22,4527.0,4528.15,1,Envolvente clasica,
+18/05/2026,09:23,MEC,Envolvente,Buy,Take Profit,1.0,4568.56,4571.73,4568.38,4571.46,1,Envolvente clasica,True
+19/05/2026,09:02,MEC,Envolvente,Sell,Take Profit,1.0,4535.08,4535.24,4530.41,4530.98,0,"no cumple ningun umbral (cuerpo=85%, mecha_op=12%)",False
+20/05/2026,09:13,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4499.31,4502.53,4499.05,4502.4,1,Envolvente clasica,
+20/05/2026,09:24,MEC,Envolvente,Sell,Take Profit,1.0,4496.34,4496.83,4493.97,4494.34,0,"no cumple ningun umbral (cuerpo=70%, mecha_op=13%)",False
+21/05/2026,09:33,MEC,Envolvente,Sell,Stop Loss,-1.0,4513.37,4515.47,4509.52,4510.74,3,Envolvente doji,True
+21/05/2026,09:48,MER,MER-sin-patron,Buy,Take Profit,1.0,4513.37,4515.47,4509.52,4510.74,0,vela no es del color esperado,
+22/05/2026,10:03,MEC,Envolvente,Sell,Take Profit,1.0,4505.44,4506.93,4503.14,4506.65,0,vela no es del color esperado,False
+27/05/2026,09:18,MEC,START,Sell,Stop Loss,-0.56,4418.79,4419.19,4409.77,4410.44,1,Envolvente clasica,
+27/05/2026,09:32,MER,MER-sin-patron,Buy,Take Profit,1.0,4415.48,4421.36,4413.96,4421.32,0,"no cumple ningun umbral (cuerpo=79%, mecha_op=1%)",
+28/05/2026,10:08,MER,MER-sin-patron,Buy,Take Profit,1.0,4430.58,4434.34,4430.33,4433.88,0,"no cumple ningun umbral (cuerpo=82%, mecha_op=12%)",
+29/05/2026,09:40,MEC,Envolvente,Buy,Take Profit,1.0,4531.52,4535.08,4531.48,4534.54,0,"no cumple ningun umbral (cuerpo=84%, mecha_op=15%)",False
+02/06/2026,09:21,MEC,Envolvente,Sell,Take Profit,1.0,4513.48,4514.85,4510.8,4511.0,0,"no cumple ningun umbral (cuerpo=61%, mecha_op=5%)",False
+03/06/2026,09:20,MEC,Envolvente,Sell,Take Profit,1.0,4457.7,4457.7,4453.43,4453.85,1,Envolvente clasica,True
+04/06/2026,09:53,MER,MER-sin-patron,Sell,Take Profit,1.0,4505.72,4506.72,4502.64,4503.03,0,"no cumple ningun umbral (cuerpo=66%, mecha_op=10%)",
+09/06/2026,09:46,MER,MER-sin-patron,Buy,Take Profit,1.0,4333.04,4336.1,4331.68,4335.84,0,"no cumple ningun umbral (cuerpo=63%, mecha_op=6%)",
+09/06/2026,09:40,MEC,Envolvente,Sell,Stop Loss,-1.0,4332.2,4332.23,4327.8,4327.8,1,Envolvente clasica,True
+11/06/2026,09:59,MER,MER-sin-patron,Sell,Take Profit,1.0,4087.32,4087.88,4082.5,4083.28,0,"no cumple ningun umbral (cuerpo=75%, mecha_op=15%)",
+12/06/2026,09:40,MER,MER-sin-patron,Sell,Stop Loss,-1.0,4207.34,4207.58,4191.07,4191.27,1,Envolvente clasica,
+12/06/2026,09:07,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4194.7,4200.35,4194.7,4200.35,1,Envolvente clasica,
+15/06/2026,10:05,MER,MER-sin-patron,Buy,Stop Loss,-1.0,4358.88,4364.84,4357.94,4364.17,0,"no cumple ningun umbral (cuerpo=77%, mecha_op=10%)",
+16/06/2026,09:16,MER,MER-sin-patron,Sell,Take Profit,1.0,4343.18,4343.22,4340.77,4341.06,1,Envolvente clasica,
+18/06/2026,09:40,MER,MER-sin-patron,Sell,Take Profit,1.0,4272.28,4272.38,4266.72,4267.3,1,Envolvente clasica,
+22/06/2026,10:02,MEC,Envolvente,Sell,Stop Loss,-1.0,4198.18,4198.51,4194.42,4194.6,1,Envolvente clasica,True
+23/06/2026,09:40,MEC,Envolvente,Buy,Take Profit,1.0,4118.74,4126.62,4118.19,4125.74,0,"no cumple ningun umbral (cuerpo=83%, mecha_op=10%)",False
+24/06/2026,09:18,MER,MER-sin-patron,Sell,Take Profit,1.0,3974.08,3974.58,3969.65,3973.9,0,"no cumple ningun umbral (cuerpo=4%, mecha_op=86%)",
+24/06/2026,09:41,MEC,Envolvente,Buy,Take Profit,1.0,4004.02,4008.78,4003.58,4008.22,0,"no cumple ningun umbral (cuerpo=81%, mecha_op=11%)",False
+26/06/2026,10:15,MEC,Envolvente,Buy,Take Profit,0.0,4082.38,4087.34,4081.4,4087.2,0,"no cumple ningun umbral (cuerpo=81%, mecha_op=2%)",False
+30/06/2026,09:07,MEC,Envolvente,Buy,Take Profit,1.0,4018.1,4020.85,4017.23,4020.56,0,"no cumple ningun umbral (cuerpo=68%, mecha_op=8%)",False
+01/07/2026,09:22,MEC,Envolvente,Buy,Take Profit,1.0,4028.74,4038.94,4028.33,4038.7,1,Envolvente clasica,True
+06/07/2026,09:14,MER,MER-sin-patron,Sell,Stop Loss,-1.0,4145.1,4145.2,4140.9,4141.32,1,Envolvente clasica,
+06/07/2026,10:24,MEC,START,Sell,Take Profit,0.0,4135.44,4136.12,4132.31,4132.68,0,"no cumple ningun umbral (cuerpo=73%, mecha_op=9%)",
+07/07/2026,09:24,MER,MER-sin-patron,Sell,Stop Loss,-1.0,4169.19,4169.85,4165.52,4166.05,0,"no cumple ningun umbral (cuerpo=73%, mecha_op=12%)",
+07/07/2026,10:35,MER,MER-sin-patron,Sell,Stop Loss,-0.4,4151.28,4151.46,4147.13,4147.72,0,"no cumple ningun umbral (cuerpo=82%, mecha_op=13%)",
+09/07/2026,09:13,MEC,Envolvente,Buy,Take Profit,1.0,4116.96,4120.44,4115.92,4120.22,0,"no cumple ningun umbral (cuerpo=72%, mecha_op=5%)",False
+10/07/2026,09:26,MEC,Envolvente,Sell,Take Profit,1.0,4097.95,4098.06,4095.74,4095.94,1,Envolvente clasica,True
+13/07/2026,09:39,MEC,START,Sell,Take Profit,1.0,4058.58,4058.66,4054.06,4054.66,1,Envolvente clasica,
+16/07/2026,09:35,MER,MER-sin-patron,Sell,Stop Loss,-0.5,3993.32,3994.02,3988.08,3988.98,2,Envolvente martillo,
+20/07/2026,10:29,MEC,START,Buy,Take Profit,0.0,4005.58,4006.88,4005.5,4006.85,1,Envolvente clasica,
+21/07/2026,09:31,MEC,Envolvente,Sell,Stop Loss,-0.87,4051.51,4051.95,4047.7,4048.08,0,"no cumple ningun umbral (cuerpo=81%, mecha_op=9%)",False
+21/07/2026,10:10,MEC,Envolvente,Buy,Take Profit,1.0,4054.94,4060.04,4054.94,4059.88,1,Envolvente clasica,True
+22/07/2026,09:18,MEC,Envolvente,Buy,Take Profit,1.0,4125.86,4127.56,4125.38,4127.44,0,"no cumple ningun umbral (cuerpo=73%, mecha_op=5%)",False
+23/07/2026,09:10,MEC,Envolvente,Sell,Stop Loss,-1.0,4047.2,4047.36,4040.48,4040.9,1,Envolvente clasica,True
+23/07/2026,09:48,MEC,Envolvente,Sell,Take Profit,1.0,4054.7,4055.13,4049.88,4050.52,0,"no cumple ningun umbral (cuerpo=80%, mecha_op=12%)",False
+24/07/2026,09:35,MEC,Envolvente,Buy,Take Profit,1.0,4049.43,4052.24,4049.43,4052.13,1,Envolvente clasica,True
+28/07/2026,10:19,MER,MER-sin-patron,Sell,Stop Loss,-0.45,4022.99,4022.99,4020.12,4020.14,1,Envolvente clasica,
+29/07/2026,09:03,MER,MER-sin-patron,Sell,Take Profit,1.0,4023.68,4023.68,4019.87,4019.87,1,Envolvente clasica,
+30/07/2026,09:58,MEC,Envolvente,Buy,Stop Loss,-1.0,4102.71,4108.7,4102.71,4108.04,1,Envolvente clasica,True
+31/07/2026,09:30,MER,MER-sin-patron,Sell,Take Profit,1.0,4042.55,4043.96,4039.81,4039.92,0,"no cumple ningun umbral (cuerpo=63%, mecha_op=3%)",
+03/08/2026,09:25,MEC,Envolvente,Sell,Take Profit,1.0,4034.38,4035.53,4031.54,4031.72,0,"no cumple ningun umbral (cuerpo=67%, mecha_op=4%)",False
+05/08/2026,10:03,MEC,Envolvente,Buy,Take Profit,1.0,4208.62,4210.31,4205.92,4209.0,3,Envolvente doji,True
+06/08/2026,09:19,MER,MER-sin-patron,Buy,Take Profit,1.0,4239.71,4244.51,4238.26,4244.38,0,"no cumple ningun umbral (cuerpo=75%, mecha_op=2%)",
+10/08/2026,09:02,MER,MER-sin-patron,Sell,Stop Loss,-1.0,4331.2,4331.42,4326.1,4326.94,2,Envolvente martillo,
+10/08/2026,09:46,MER,MER-sin-patron,Sell,Stop Loss,-0.86,4330.42,4330.42,4326.66,4327.4,2,Envolvente martillo,
+11/08/2026,10:41,MEC,Envolvente,Buy,Stop Loss,-0.26,4391.7,4393.34,4390.8,4393.34,0,"no cumple ningun umbral (cuerpo=65%, mecha_op=0%)",False

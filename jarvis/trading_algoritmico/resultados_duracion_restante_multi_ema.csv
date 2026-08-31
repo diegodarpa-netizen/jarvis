@@ -1,0 +1,4 @@
+EMA,n_rachas,dias_promedio_racha,corr_distancia_vs_restante_pearson,corr_distancia_vs_restante_spearman,corr_transcurrido_vs_restante_pearson,corr_transcurrido_vs_restante_spearman
+9,32,4.06,0.163,0.276,-0.153,0.009
+20,22,5.91,0.135,0.323,0.14,0.371
+50,8,16.25,0.004,0.185,-0.16,0.017

@@ -1,0 +1,7 @@
+escenario,final_usd,retorno_%,drawdown_max_%
+1% compuesto (base),20540.41,105.4,-3.97
+0.5% compuesto (conservador),14362.34,43.6,-1.99
+2% compuesto (agresivo),41484.51,314.8,-7.87
+1% SIN componer (fijo),17283.0,72.8,-3.02
+"1% compuesto, SIN Hedge Position",18414.54,84.1,-4.92
+Comprar y mantener ORO,11614.23,16.1,-25.06

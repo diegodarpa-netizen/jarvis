@@ -1,0 +1,26 @@
+//@version=5
+// Línea del precio MÁS ALEJADO de la EMA9, vela por vela -- a pedido de
+// Diego (14/08/2026). Para cada vela: si surfea arriba, usa el HIGH (el
+// punto más lejano de esa vela); si surfea abajo, usa el LOW; si toca la
+// EMA9, usa el close. Se conecta vela a vela formando una línea continua
+// que corre "surfeando" junto a la EMA9 -- y el área entre las dos queda
+// pintada, marcando visualmente cuánto se alejó el precio en cada tramo.
+//
+// Versión simple a propósito (overlay=true, sobre las velas, sin paneles
+// aparte ni inputs extra) -- para confirmar que carga bien en TradingView
+// antes de sumarle más capas.
+indicator("Precio más alejado de EMA9", overlay=true)
+
+emaLen = input.int(9, "Período EMA")
+ema9 = ta.ema(close, emaLen)
+
+surfeaArriba = low > ema9
+surfeaAbajo = high < ema9
+
+extremo = surfeaArriba ? high : surfeaAbajo ? low : close
+colorLinea = surfeaArriba ? color.lime : surfeaAbajo ? color.red : color.yellow
+
+pEma = plot(ema9, color=color.orange, linewidth=2, title="EMA9")
+pExtremo = plot(extremo, color=colorLinea, linewidth=2, title="Precio más alejado")
+
+fill(pEma, pExtremo, color=color.new(colorLinea, 85), title="Área de distancia")

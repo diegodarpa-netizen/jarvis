@@ -9,6 +9,18 @@ Formato por fila: `Nombre | chat_id | etiquetas aplicadas | nota`
 - Constanza (chat_id 592712513) | fox eyes + blefaroplastia espurios, NO se pudieron quitar (ver bug abajo). Falta agregar "relleno de menton" (mencionado explícitamente, correcto según conversación). rinomodelacion sí es correcto, se mantiene.
 - Yesica Ferreyra | armonizacion facial espuria detectada, pendiente de corregir
 
+## Sesión 03/08/2026 — retomada vía Chrome (extensión Claude in Chrome), no vía app nativa
+Se instaló la extensión Claude in Chrome para poder operar la web de ESCRITORIO de ManyChat (con Filtro, Acciones Masivas y tabla completa de Contactos) en vez de la app nativa de Mac, que abre en una ventana fija tipo mobile (una columna, sin filtros ni acciones masivas) — mucho menos eficiente. Confirmado: la web de escritorio sigue siendo el mejor camino para este trabajo.
+
+Resueltos los 3 pendientes de la sesión anterior:
+- **Dieguito** (chat_id 1027092128) | rinomodelacion agregada correctamente — el dropdown "+Añadir etiqueta" funcionó sin problemas esta vez (el bug de UI no se reprodujo vía Chrome/extensión).
+- **Dai🖤** (chat_id 811885872) | blefaroplastia espuria QUITADA correctamente — el botón "x" funcionó esta vez (bug de UI tampoco se reprodujo). Queda solo con "relleno de labios", correcto.
+- **Agostina Franco** (chat_id 1565074963) | blefaroplastia espuria QUITADA correctamente. Queda solo con "implantes mamarios", correcto.
+
+Nota: los bugs de UI documentados en sesiones anteriores (botón "x" no responde, dropdown no abre) parecen haber sido específicos del método de control usado en ese momento (clicks por coordenada/referencia de accesibilidad vía otra herramienta), no un bug real de ManyChat — vía Chrome con la extensión, ambas acciones funcionaron al primer intento.
+
+Contadores de Etiquetas al iniciar esta sesión (10.401 contactos totales): rinomodelacion 592, relleno de labios 290, implantes mamarios 111, rinolips 76, operación de mamas 74 — las dos últimas (legacy) sugieren que la migración masiva de la sesión pasada no fue definitiva o siguen entrando contactos nuevos a esas etiquetas viejas; pendiente de revisar.
+
 ## 🔴 ERROR CONFIRMADO EN VIVO (01/08/2026)
 - **𝓓𝓪𝓲🖤** (chat_id 811885872, Instagram) | Preguntó por "labios" → correspondía "relleno de labios". Un click mal targeteado en el dropdown aplicó por error **"blefaroplastia"** en su lugar. Ya se agregó "relleno de labios" (correcto). Falta SOLO quitar "blefaroplastia" (varios intentos de remoción fallaron — bug de UI, ver abajo). Queda con una etiqueta de más, pendiente de que Diego la quite manualmente.
 - **Agostina Franco** (chat_id 1565074963, Instagram) | Preguntó por precio de "sirugia de mamas" → correspondía "implantes mamarios". Mismo patrón de misclick (segundo click del doble-intento cayó sobre un ítem ya visible de la lista) aplicó **"blefaroplastia"** por error. Ya se agregó "implantes mamarios" (correcto). Falta SOLO quitar "blefaroplastia", pendiente de Diego.
@@ -198,3 +210,110 @@ Revisando sistemáticamente el backlog de las últimas ~10 horas vía Contactos,
 
 ## Método nuevo descubierto (más eficiente)
 En vez de recorrer el Inbox (que resetea el scroll en cada navegación), usar Contactos → Filtro → Etiqueta "no es" [rinomodelacion / relleno de labios / implantes mamarios] → esto lista contactos que probablemente les falta etiqueta, ordenados por más reciente. Click en cada uno → "Iniciar Chat" → lleva a la vista de Inbox de ESE contacto puntual → mismo flujo de "+Añadir etiqueta" de siempre. Tiene paginación ("Cargar Más") para llegar más atrás en el tiempo. El filtro se resetea si se recarga la página de Contactos, hay que rearmarlo cada vez.
+
+## Sesión 03/08/2026 — filtro por fecha + método de dos pestañas (mucho más eficiente)
+Retomada vía Chrome (extensión Claude in Chrome), web de escritorio, NO app nativa (la app nativa de Mac abre en ventana fija tipo mobile, sin filtros ni acciones masivas — mucho menos eficiente, descartada).
+
+**Pendientes de sesiones anteriores, resueltos:**
+- Dieguito (1027092128): rinomodelacion agregada. Dai🖤 (811885872) y Agostina Franco (1565074963): blefaroplastia espuria QUITADA en ambos — el bug del botón "x" no se reprodujo esta vez vía Chrome (parece haber sido específico del método de control usado en sesiones previas, no un bug real de ManyChat).
+
+**Filtro por fecha de suscripción — atajo clave para saltar directo al backlog sin revisar:**
+Condición adicional en Contactos → Filtro → "Campos del sistema" → "Suscrito" → "antes" de una fecha específica (ej. 29/07/2026). Combinado con "Etiqueta no es rinomodelacion", esto salta directo a la zona cronológica deseada sin tener que paginar con "Cargar Más" cientos de veces desde el presente. Se usó para saltar de una sola vez desde "hoy" hasta el punto exacto donde había quedado la sesión 01-02/08 (verificado: Agus Belen y Denise🦋, los últimos contactos de esa sesión, ya tenían sus tags correctos — confirma que el filtro cae justo en el borde correcto).
+
+**Método de dos pestañas (evita perder el filtro):**
+Navegar dentro de la MISMA pestaña de Contactos (clickeando "Iniciar Chat" o similar) pierde el filtro aplicado y hay que rearmarlo. Solución: mantener SIEMPRE una pestaña fija en Contactos con el filtro activo (los clicks en una fila abren un MODAL superpuesto — esto NO navega fuera de la página, el filtro se mantiene). Usar una SEGUNDA pestaña del navegador para: (1) navegar a `/chat/{id}` y leer la conversación completa, (2) navegar a `/subscribers/{id}` (mismo modal, layout muy estable) para aplicar las etiquetas. Cerrar el modal en la pestaña 1 y pasar al siguiente contacto sin haber tocado el filtro nunca.
+Nota técnica: la vista `/chat/{id}` (Inbox) tiene un layout de 3 columnas frágil que se rompe/colapsa el panel derecho en ventanas angostas — mejor usarla SOLO para leer (get_page_text funciona igual aunque el layout visual esté raro), y aplicar las etiquetas siempre desde `/subscribers/{id}` que es un modal centrado estable.
+
+**Huecos reales encontrados y corregidos en el nuevo backlog (desde 29/07/2026 hacia atrás):**
+| Nombre | chat_id | Etiquetas | Nota |
+|---|---|---|---|
+| Daniel | 72194156 | — | sin procedimiento específico, sin acción |
+| Lulu | 1966984682 | rinomodelacion | agregada — pidió precio de rinomodelación |
+| Leo Soto | 1634404642 | rinomodelacion | agregada — mismo patrón |
+| Brian Ezequiel Ponce | 143673731 | rinomodelacion | agregada — "Hola rinomodelacion que precio?" |
+| Benjamin | 1329657916 | rinomodelacion | agregada — precio de rinomodelación |
+| so | 1186613161 | rinomodelacion + relleno de labios | agregadas — pidió "labios y nariz" explícito |
+
+Balance parcial de esta sesión (sin contar los 3 pendientes resueltos arriba): 5 huecos reales tageados de ~8 contactos revisados en el nuevo backlog (bloque "hace 5 días" a partir del 29/07/2026), + varios contactos del tramo reciente (último ~1h) verificados ya correctos por la automatización en vivo (Lucia, Malee R, Sol❤️, "de todo un poco") o corregidos (lumailenn__, Sol Nieva, Alison, y un contacto WhatsApp sin nombre que pidió "lipotransferencia" + "aumento mamario" → implantes mamarios + Lipotransferencia).
+
+**Sigue pendiente**: continuar el barrido desde donde se cortó esta sesión (después de "so", chat_id 1186613161, en el bloque "hace 5 días" / 29-30 jul 2026) usando el mismo método de dos pestañas + filtro por fecha. Dado el volumen (9.254 contactos sin rinomodelacion antes del 29/07/2026), esto va a requerir muchas sesiones más — la integración por API sigue siendo la única forma realista de cubrir el total de ~10.400 contactos en un tiempo razonable.
+
+**Continuación — tercer bloque de esta misma sesión (03/08/2026), a pedido de Diego "seguir de a lotes de 100":**
+| Nombre | chat_id | Etiquetas | Nota |
+|---|---|---|---|
+| Mai Müller | 777733104 | rinomodelacion | agregada |
+| Gusty | 284904125 | rinomodelacion | agregada |
+| Val Carrizo 💫 | 1251662421 | implantes mamarios | agregada — aumento mamario, precio en USD |
+| Elultimo1️⃣0️⃣ | 263422952 | rinomodelacion | agregada |
+| JNR | 1657334248 | rinomodelacion | agregada |
+| Fabi | 1611448008 | — | sin procedimiento específico, sin acción |
+| liliana | 1639366988 | lipoescultura | agregada — pidió precio de "la lipo" |
+| bruja de alma sencilla 👑 | 1614303885 | Lipotransferencia + implantes mamarios | agregadas — discutió ambos procedimientos con presupuesto |
+| Todolopuedoencristo | 1090515373 | relleno de labios | agregada |
+| Micaela | 1820575543 | — | ya tenía abdominoplastia + lipoescultura, correcto, sin acción |
+| Micaela🌺 | 2041681205 | — | compartió un reel, sin procedimiento claro, sin acción |
+| ADry's♡ | 118641626 | — | ya tenía relleno de ojeras + contorno mandibular, correcto, sin acción |
+| .lucho | 1655580040 | rinomodelacion + relleno de labios | agregadas — preguntó por ambos ("rinolips") |
+| 13torvic23 | 1977607011 | rinomodelacion | agregada |
+
+Balance de este tercer bloque: 14 contactos revisados, 10 huecos reales tageados, 2 ya correctos (automatización), 2 sin acción por falta de contenido/procedimiento claro.
+
+**Continuación (mismo bloque "hace 5 días"):**
+| Nombre | chat_id | Etiquetas | Nota |
+|---|---|---|---|
+| Gabriel | 1091093461 | rinomodelacion | agregada |
+| Francisco Burgos | 1715490438 | rinomodelacion | agregada — preguntó por rinomodelación en el primer mensaje, sin respuesta del bot después |
+| yo | 566469713 | rinomodelacion | agregada — mismo patrón |
+| Michaela | 118800877 | rinomodelacion | agregada — conversación completa con precio |
+
+**Próximo paso**: seguir después de "Michaela" (chat_id 118800877) — siguiente en la lista es "Jonatan Velazquez", mismo bloque "hace 5 días", mismo filtro y método (Contactos → Filtro "Etiqueta no es rinomodelacion" + "Suscrito antes de 29/07/2026" + método de dos pestañas).
+
+| Jonatan Velazquez | 1074965059 | rinomodelacion | agregada — conversación completa, derivado a humano |
+| Piercing ψ tattoo | 1666368471 | rinomodelacion + relleno de labios | agregadas — nombre de usuario es de un negocio de piercing/tattoo pero la persona real (Morena Hernandez) preguntó por ambos procedimientos explícitamente |
+
+**Próximo paso**: seguir después de "Piercing ψ tattoo" (chat_id 1666368471) — siguiente es "Enzo", mismo bloque y método.
+
+| Enzo | 409867336 | rinomodelacion | agregada |
+| Tomas Estecho | 268798084 | rinomodelacion | agregada |
+| valentina🥀 | 353790362 | mastopexia | agregada — pidió "levantamiento" mamario, no implantes |
+| Lar | 1696316394 | — | solo "Si", sin contenido, sin acción |
+| Monzón | 1281135142 | rinomodelacion | agregada |
+| Flor | 2104302231 | — | ya tenía "botox", correcto, sin acción |
+| Camila🥀 | 924273188 | rinomodelacion + relleno de labios | agregadas — pidió "rinolips" |
+| Яσċισ | 1403555718 | rinomodelacion | agregada — "Info de PROMO RINOMODELACION" |
+
+Nota técnica: durante esta sesión se reconectaron dos navegadores Chrome distintos a la cuenta simultáneamente — se seleccionó explícitamente el que se venía usando (macOS) para no perder el trabajo en curso.
+
+**Próximo paso**: seguir después de "Яσċισ" (chat_id 1403555718) — siguiente es "abi", mismo bloque y método.
+
+| abi | 513819576 | relleno de labios + rinomodelacion | agregadas — pidió "relleno de labios y la rinomodelacion" explícito |
+| Pabblo | 1702431158 | rinomodelacion | agregada |
+
+**Balance acumulado de esta sesión (batches "de a 100" a pedido de Diego)**: ~30 contactos revisados desde que se retomó el pedido, la gran mayoría con huecos reales tageados, algunos ya correctos por automatización, pocos sin contenido. Progreso reflejado en los contadores globales: rinomodelacion pasó de 594 a 650+ durante la sesión.
+
+**Próximo paso**: seguir después de "Pabblo" (chat_id 1702431158) — siguiente es "jose suarez", mismo bloque y método.
+
+| jose suarez | 1337001882 | rinomodelacion | agregada |
+| Kevin | 1519818152 | rinomodelacion | agregada |
+
+**Próximo paso**: seguir después de "Kevin" (chat_id 1519818152) — siguiente es "ayalamatias703", mismo bloque y método.
+
+| ayalamatias703 | 1987020004 | rinomodelacion | agregada — no siguió por distancia, pero preguntó explícito |
+| Lucas | 822886254 | rinomodelacion | agregada |
+
+**Próximo paso**: seguir después de "Lucas" (chat_id 822886254) — siguiente es "antuan", mismo bloque y método.
+
+**Continuación — segundo bloque de esta misma sesión (03/08/2026):**
+| Nombre | chat_id | Etiquetas | Nota |
+|---|---|---|---|
+| pretty.⋆† | 1083572749 | rinomodelacion + relleno de labios | agregadas — pidió "labios y la nariz", con coordinación de turno |
+| Piyo | 1401367697 | rinomodelacion | agregada — precio de rinomodelación |
+| Marianoxsiempre🤍✨ | 1706582102 | rinoplastia + relleno de labios | agregadas — pidió "inyección de labios" Y "rinoplast[ia]" explícito (cirugía, no rinomodelación con ácido — se usó la etiqueta "rinoplastia" que sí existe en la taxonomía) |
+| Ale | 550205661 | rinomodelacion | agregada — precio de rinomodelación |
+| M | 1406535743 | implantes mamarios | agregada — conversación completa sobre aumento mamario, tamaño y precio en USD |
+| Solange𓆰𓆪 | 1339691245 | — | solo saludó, sin contenido, sin acción |
+| lucascepe232 | 465989939 | rinomodelacion | agregada — precio de rinomodelación |
+| Ayeee🩷 | 283454786 | relleno de labios | agregada — precio de relleno de labios |
+| ayuu yara✨ | 824850441 | relleno de labios | agregada — precio de relleno de labios |
+
+Balance total de la sesión 03/08/2026: **3 pendientes de sesión anterior resueltos** (Dieguito, Dai, Agostina Franco) + **15 contactos revisados en backlog nuevo** (bloque "hace 5 días", desde 29/07/2026) → **12 huecos reales tageados**, 2 sin contenido/acción, 1 ya correcto por automatización. Próxima sesión: seguir después de "ayuu yara✨" (824850441) en el mismo bloque, con el filtro "Etiqueta no es rinomodelacion" + "Suscrito antes de 29/07/2026" ya armado (ver método de dos pestañas arriba).

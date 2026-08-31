@@ -6,7 +6,17 @@
 
 ## Reglas del PDF (inamovibles)
 
-- Alto M3: vela alcista[2] + vela bajista[1] → `math.max(high[1], high[2])`
+> ⚠️ **Aclaración 27/08/2026** (corrigiendo un error real cometido al escribir
+> `EstrategiaXAU.pine` v1): **M3 = timeframe de 3 minutos real**, no un patrón
+> de 2 velas M1. El propio Plan Técnico dice "la estructura de mercado se
+> observa y grafica en m3" — un chart aparte de 3min, cuyos niveles se
+> proyectan sobre M1 (donde se ejecuta la entrada). En Pine se lee con
+> `request.security(syminfo.tickerid, "3", ...)`, nunca comparando `open[1]`/`close[1]`
+> directo en M1. Esto también explica por qué "esperar 2 pivots" tarda
+> ~12-18 min (2-3 velas de 3min por pivote × 2 pivots), no 2-4 min como daría
+> con velas M1.
+
+- Alto M3: vela alcista[2] + vela bajista[1] → `math.max(high[1], high[2])` (indices dentro del contexto de 3min)
 - Bajo M3: vela bajista[2] + vela alcista[1] → `math.min(low[1], low[2])`
 - Tendencia ALCISTA: nuevo alto M3 > alto M3 anterior (higher highs)
 - Tendencia BAJISTA: nuevo bajo M3 < bajo M3 anterior (lower lows)

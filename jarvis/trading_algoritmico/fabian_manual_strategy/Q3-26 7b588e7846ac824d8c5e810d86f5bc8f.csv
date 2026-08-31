@@ -1,0 +1,43 @@
+﻿Fecha,Día,Modelo de entrada,Patrón de entrada,Hora apertura (NY),Hora cierre  (NY),Buy / Sell,Resultado,Beneficio (R),"Trades tp ","Trades sl ",Comentario,Gestión,Imagen,R:B máx
+30/06/2026,Martes,MEC,Envolvente,09:07,09:20,Buy,Take Profit,1,1,,,,,
+01/07/2026,Miércoles,MEC,Envolvente,09:22,09:30,Buy,Take Profit,1,1,,,,,
+06/07/2026,Lunes,MER,,09:14,09:23,Sell,Stop Loss,-1,,1,,,,
+06/07/2026,Lunes,"Hegde Position, MEC",START,10:24,10:55,Sell,Take Profit,0,1,,,,,
+07/07/2026,Martes,MER,,09:24,09:26,Sell,Stop Loss,-1,,1,,,,
+07/07/2026,Martes,MER,,10:35,10:44,Sell,Stop Loss,"-0,4",,1,,,,
+09/07/2026,Jueves,MEC,Envolvente,09:13,10:03,Buy,Take Profit,1,1,,,,,
+10/07/2026,Viernes,MEC,Envolvente,09:26,09:29,Sell,Take Profit,1,1,,,,,
+13/07/2026,Lunes,MEC,START,09:39,09:51,Sell,Take Profit,1,1,,,,,
+16/07/2026,Jueves,MER,,09:35,11:17,Sell,Stop Loss,"-0,5",,1,,,,
+20/07/2026,Lunes,MEC,START,10:29,11:00,Buy,Take Profit,0,1,,,,,
+21/07/2026,Martes,MEC,Envolvente,09:31,10:10,Sell,Stop Loss,"-0,87",,1,,,,
+21/07/2026,Martes,"Hegde Position, MEC",Envolvente,10:10,10:18,Buy,Take Profit,1,1,,,,,
+22/07/2026,Miércoles,MEC,Envolvente,09:18,09:30,Buy,Take Profit,1,1,,,,,
+23/07/2026,Jueves,MEC,Envolvente,09:10,09:28,Sell,Stop Loss,-1,,1,,,,
+23/07/2026,Jueves,MEC,Envolvente,09:48,10:08,Sell,Take Profit,1,1,,,,,
+24/07/2026,Viernes,MEC,Envolvente,09:35,09:48,Buy,Take Profit,1,1,,,,,
+28/07/2026,Martes,MER,,10:19,11:58,Sell,Stop Loss,"-0,45",,1,,,,
+29/07/2026,Miércoles,MER,,09:03,09:29,Sell,Take Profit,1,1,,,,,
+30/07/2026,Jueves,MEC,Envolvente,09:58,10:19,Buy,Stop Loss,-1,,1,,,,
+31/07/2026,Viernes,MER,,09:30,09:35,Sell,Take Profit,1,1,,,,,
+03/08/2026,Lunes,MEC,Envolvente,09:25,09:38,Sell,Take Profit,1,1,,,,,
+05/08/2026,Miércoles,MEC,Envolvente,10:03,10:07,Buy,Take Profit,1,1,,,,,
+06/08/2026,Jueves,MER,,09:19,09:37,Buy,Take Profit,1,1,,,,,
+10/08/2026,Lunes,MER,,09:02,09:11,Sell,Stop Loss,-1,,1,,,,
+10/08/2026,Lunes,MER,,09:46,10:22,Sell,Stop Loss,"-0,86",,1,,,,
+11/08/2026,Martes,MEC,Envolvente,10:41,11:08,Buy,Stop Loss,"-0,26",,1,,,,
+14/08/2026,Viernes,MEC,Envolvente,"09:34 ",09:46,Buy,Stop Loss,"-0,2",,1,,"+2R, Operativa libre",https://www.tradingview.com/x/RinaCZqF/,
+14/08/2026,Viernes,"Hegde Position, MER",,"09:46 ",09:53,Sell,Take Profit,1,1,,,"+2R, Operativa libre","https://www.tradingview.com/x/LUgcbHFQ/, https://www.tradingview.com/x/JhpAo5BS/","1,5"
+18/08/2026,Martes,MER,,"09:51 ",10:53,Sell,Take Profit,1,1,,,"+2R, Operativa libre","https://www.tradingview.com/x/l4vx8XCd/, https://www.tradingview.com/x/G7SGTVEm/","1,6"
+19/08/2026,Miércoles,MER,,"09:35 ",09:43,Sell,Stop Loss,"-0,81",,1,,"+2R, Operativa libre",https://www.tradingview.com/x/lYntRGTe/,
+19/08/2026,Miércoles,"Hegde Position, MER",,"09:43 ",10:25,Buy,Take Profit,1,1,,,"+2R, Operativa libre","https://www.tradingview.com/x/GMLM1Tc9/, https://www.tradingview.com/x/MI6zBe2V/","1,6"
+20/08/2026,Jueves,MEC,Envolvente,"10:45 ",10:53,Buy,Take Profit,1,1,,,"+2R, Operativa libre","https://www.tradingview.com/x/Hdf3HiyO/, https://www.tradingview.com/x/68Dd7xEn/","2,4"
+21/08/2026,Viernes,MER,,"09:37 ",10:25,Buy,Take Profit,1,1,,,Operativa libre,https://www.tradingview.com/x/VqBd9lqx/,"1,1"
+24/08/2026,Lunes,MER,,"10:20 ",10:42,Buy,Take Profit,"0,1",1,,,"+2R, Operativa libre",https://www.tradingview.com/x/gftuGKWZ/,
+24/08/2026,Lunes,"Hegde Position, MER",,"10:42 ",10:50,Sell,Take Profit,1,1,,,"+2R, Operativa libre","https://www.tradingview.com/x/Or21NDxh/, https://www.tradingview.com/x/Hdid1tHL/","1,6"
+25/08/2026,Martes,MER,,"10:19 ",10:24,Sell,Stop Loss,"-0,88",,1,,"+2R, Operativa libre",https://www.tradingview.com/x/U9rNkFcm/,
+25/08/2026,Martes,"Hegde Position, MER",,"10:24 ",10:30,Buy,Stop Loss,-1,,1,,"+2R, Operativa libre",https://www.tradingview.com/x/je2KoL3k/,
+26/08/2026,Miércoles,MEC,Envolvente,"09:59 ",10:30,Buy,Stop Loss,-1,,1,"Se redujo el stop loss en un 40% y el resultado de no haber hecho esta acción también fue un SL. El tamaño del stop loss original fue de 26.385 pips. ","+2R, Operativa libre",https://www.tradingview.com/x/5EqCjGjg/,
+26/08/2026,Miércoles,MEC,Envolvente,"10:59 ",11:05,Sell,Take Profit,1,1,,,"+2R, Operativa libre",https://www.tradingview.com/x/hcpK45wW/,"0,9"
+27/08/2026,Jueves,MEC,Envolvente,"09:34 ",10:20,Sell,Stop Loss,"-0,46",,1,,"+2R, Operativa libre",https://www.tradingview.com/x/76JKnLt1/,
+27/08/2026,Jueves,"Hegde Position, MEC",Envolvente,"10:20 ",10:43,Buy,Take Profit,1,1,,,"+2R, Operativa libre","https://www.tradingview.com/x/1WsNfYp9/, https://www.tradingview.com/x/5PW7woM2/","1,2"
