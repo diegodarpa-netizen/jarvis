@@ -53,7 +53,7 @@ MAX_SL_PIPS     = input.int(20000, "SL maximo antes de reducir 40% (pips = preci
 DAILY_MAX_SL    = 2   // regla fija del Plan Operativo: 2 SL detiene el dia
 SHOW_LEVELS     = input.bool(true, "Mostrar niveles M3 (lineas)", group=grp_ses)
 SHOW_TRADE_LINES = input.bool(true, "Mostrar lineas de entrada/SL/TP", group=grp_ses)
-SHOW_TREND_BG   = input.bool(true, "Mostrar franjas de fondo por tendencia", group=grp_ses)
+SHOW_CHOC_MARK  = input.bool(true, "Marcar vela del Cambio de Estructura", group=grp_ses)
 SHOW_LABELS     = input.bool(true, "Mostrar etiqueta BUY/SELL", group=grp_ses)
 ALLOW_HEDGE     = input.bool(true, "Permitir Hedge Position", group=grp_ses)
 
@@ -252,9 +252,20 @@ if tendState >= 0 and f_rompioAbajoMecha(bajoM3Level)
 else if tendState == -1 and f_rompioAbajoMecha(bajoM3Level)
     ultimoQuiebreLevel := bajoM3Level
 
-// ─── FRANJAS DE FONDO POR TENDENCIA (aprobado en apariencia_labels.md) ────
-bgcolor(SHOW_TREND_BG and tendState == 1 ? color.new(color.green, 88) : na, title="Tendencia alcista")
-bgcolor(SHOW_TREND_BG and tendState == -1 ? color.new(color.red, 88) : na, title="Tendencia bajista")
+// ─── MARCA DE CAMBIO DE ESTRUCTURA -- SOLO la vela del ChoC (31/08/2026,
+// reemplaza la franja de fondo por toda la tendencia: Diego pidio volver
+// al estilo de una version anterior, "marcaba la vela, me gusta") ────────
+bgcolor(SHOW_CHOC_MARK and chocAlcistaNuevo ? color.new(color.green, 55) : na, title="ChoC alcista (vela)")
+bgcolor(SHOW_CHOC_MARK and chocBajistaNuevo ? color.new(color.red, 55) : na, title="ChoC bajista (vela)")
+
+if SHOW_CHOC_MARK and chocAlcistaNuevo
+    label.new(bar_index, low - (high - low) * 1.5, "CAMBIO DE ESTRUCTURA ALCISTA",
+              style=label.style_label_up, color=color.new(color.green, 15),
+              textcolor=color.white, size=size.small)
+if SHOW_CHOC_MARK and chocBajistaNuevo
+    label.new(bar_index, high + (high - low) * 1.5, "CAMBIO DE ESTRUCTURA BAJISTA",
+              style=label.style_label_down, color=color.new(color.red, 15),
+              textcolor=color.white, size=size.small)
 
 // ─── MEC escenario b: Quiebre - Pullback - Continuacion (estado, en M1) ──
 var int   mecFaseAlcista = 0
@@ -357,12 +368,20 @@ f_cerrarLineasTrade() =>
     if not na(lineTP)
         line.delete(lineTP)
 
-f_dibujarEtiquetaDireccion(esCompra) =>
-    txt = esCompra ? "BUY" : "SELL"
-    col = esCompra ? color.new(color.green, 0) : color.new(color.red, 0)
-    yPos = esCompra ? low - (high - low) * 0.6 : high + (high - low) * 0.6
-    label.new(bar_index, yPos, txt, color=col, textcolor=color.white,
-              style=label.style_label_up, size=size.tiny, text_font_family=font.family_default)
+// 31/08/2026: vuelve al estilo de tag gris + nombre del modelo debajo
+// (ej. "MER SELL", "MEC ENV SELL"), a pedido de Diego con referencia a
+// una version anterior del script.
+f_dibujarEtiquetaDireccion(esCompra, textoModelo) =>
+    dirTxt   = esCompra ? "BUY" : "SELL"
+    styleLbl = esCompra ? label.style_label_up : label.style_label_down
+    offsetTag    = (high - low) * 2.4
+    offsetModelo = (high - low) * 0.9
+    yTag    = esCompra ? low - offsetTag    : high + offsetTag
+    yModelo = esCompra ? low - offsetModelo : high + offsetModelo
+    label.new(bar_index, yTag, dirTxt, color=color.new(color.gray, 10), textcolor=color.white,
+              style=styleLbl, size=size.tiny, text_font_family=font.family_default)
+    label.new(bar_index, yModelo, textoModelo, color=color.new(color.gray, 100), textcolor=color.white,
+              style=styleLbl, size=size.tiny, text_font_family=font.family_default)
 
 // ─── EJECUCION ─────────────────────────────────────────────────────────────
 if mecLong or merLong
@@ -384,7 +403,8 @@ if mecLong or merLong
         lineSL      := line.new(bar_index, slPrice, bar_index, slPrice, color=color.new(color.red, 10), width=1, style=line.style_dashed)
         lineTP      := line.new(bar_index, tpPrice, bar_index, tpPrice, color=color.new(color.green, 10), width=1, style=line.style_dashed)
     if SHOW_LABELS
-        f_dibujarEtiquetaDireccion(true)
+        textoModeloLong = modelo == "MER" ? "MER BUY" : "MEC " + (patron == "START" ? "START" : "ENV") + " BUY"
+        f_dibujarEtiquetaDireccion(true, textoModeloLong)
 
 if mecShort or merShort
     slNivel = altoM3Level
@@ -405,7 +425,8 @@ if mecShort or merShort
         lineSL      := line.new(bar_index, slPrice, bar_index, slPrice, color=color.new(color.red, 10), width=1, style=line.style_dashed)
         lineTP      := line.new(bar_index, tpPrice, bar_index, tpPrice, color=color.new(color.green, 10), width=1, style=line.style_dashed)
     if SHOW_LABELS
-        f_dibujarEtiquetaDireccion(false)
+        textoModeloShort = modelo == "MER" ? "MER SELL" : "MEC " + (patron == "START" ? "START" : "ENV") + " SELL"
+        f_dibujarEtiquetaDireccion(false, textoModeloShort)
 
 // estirar las lineas de la operacion activa hasta la barra actual
 if SHOW_TRADE_LINES and enPosicion
