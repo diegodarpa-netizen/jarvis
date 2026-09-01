@@ -35,6 +35,26 @@ se agrega acá abajo, con fecha, para no perder el hilo entre sesiones.
 
 ## Bitácora de calibración (agregar entradas nuevas arriba)
 
+### 31/08/2026 — RE-TEST completo, resultado confirmado (nada cambió)
+A pedido explícito de Diego ("no quiero que me digas que ya está hecho...
+quiero que hagamos un test y quiero ver el porcentaje de acierto otra
+vez"): se corrió de nuevo, operación por operación, TODO el dataset de
+191 operaciones reales -- no de memoria, un test real ejecutado ahora
+(`retest_completo_31ago.py`, carga el CSV de precios una sola vez y
+reusa `señales_del_dia()` de `validar_entrada_fabian.py`, sin cambiar
+ninguna lógica).
+
+**Resultado: 182/191 EXACTAS (95,3%), 0 sin dato -- idéntico al cierre
+del 30/08/2026.** Las 9 que no coinciden son exactamente las mismas 9 ya
+documentadas (ninguna nueva, ninguna dejó de fallar):
+28/10 09:04 SELL, 26/11 09:35 BUY, 26/11 10:10 BUY, 07/04 10:01 SELL,
+22/04 09:28 BUY, 30/04 09:34 SELL, 22/05 10:03 SELL (Regla N°5), 05/08
+10:03 BUY, 25/08 10:19 SELL -- todas con causa ya conocida (8 diferencia
+de precio OANDA/Dukascopy + 1 Regla N°5 de noticias confirmada por
+Fabian). Confirma que el motor está estable: no hubo regresión desde el
+cierre del 30/08. Resultado fila por fila guardado en
+`retest_completo_31ago_resultado.csv`.
+
 ### 30/08/2026 — CIERRE DEFINITIVO: 182/191 (95,3%), 0 sin dato
 Fabian confirmó las 2 fechas ambiguas: la operación anotada como
 08/02/2026 (Martes) era en realidad **10/02/2026**, y la anotada como
