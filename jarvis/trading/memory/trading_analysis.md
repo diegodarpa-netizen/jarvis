@@ -1241,9 +1241,17 @@ Operativo.
   Diego puede desactivarlo desde la config de estilo del indicador en
   TradingView, no es algo que dependa del código).
 
+#### Dato exacto confirmado por Diego (vía Fabian) — 01/09/2026
+- Posicionamiento: **Venta**
+- Ejecución: **MEC**
+- Tiempo de entrada: **08:00h** (NY)
+- Tiempo de salida: **08:35h**
+- Resultado: **+1R** (TP)
+
 #### Pendiente
-- Confirmar con Fabian el horario/dirección exacto de la entrada de las
-  ~08:00 para chequearla puntualmente (igual que el resto de las 191).
-- Volver a correr la sesión completa con el fix del contador aplicado y
-  ver si el código ahora sí opera en la zona 07:50-08:15.
+- Chequear en el chart real de OANDA (con el fix del Hedge ya aplicado)
+  si a las 08:00 el código ahora reconoce un SELL/MEC — la sesión Pre-NY
+  ya no debería cortarse a los 15 minutos.
+- Si hace falta verificación independiente, bajar Dukascopy de hoy y
+  correr `señales_del_dia()` sobre esa vela puntual.
 
