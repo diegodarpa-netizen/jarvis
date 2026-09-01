@@ -59,7 +59,7 @@ ALLOW_HEDGE     = input.bool(true, "Permitir Hedge Position", group=grp_ses)
 
 grp_periodo = "Periodo de comparacion (Fase 2 -- vs. historico real de Fabian)"
 FECHA_INICIO = input.time(timestamp("2025-10-27 00:00 -0400"), "Inicio del backtest", group=grp_periodo)
-FECHA_FIN    = input.time(timestamp("2026-08-27 23:59 -0400"), "Fin del backtest", group=grp_periodo)
+FECHA_FIN    = input.time(timestamp("2030-12-31 23:59 -0400"), "Fin del backtest", group=grp_periodo)
 enRangoComparacion = time >= FECHA_INICIO and time <= FECHA_FIN
 
 grp_vela = "Umbrales de vela (Plan Tecnico)"
