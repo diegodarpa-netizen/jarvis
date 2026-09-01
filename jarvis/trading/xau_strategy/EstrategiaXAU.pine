@@ -70,10 +70,28 @@ ENV_DOJI_MIN      = input.float(15.0, "Envolvente doji: mecha minima %", group=g
 ENV_DOJI_MAX      = ENV_CLASICA_MIN
 INDECISION_MAX    = input.float(50.0, "Vela indecision (Start): cuerpo maximo %", group=grp_vela) / 100
 
-// ─── SESION NY (09:01-10:59, ajuste automatico de horario) ────────────────
-sess = time(timeframe.period, "0901-1059", "America/New_York")
-inSession = not na(sess)
-bgcolor(inSession ? color.new(color.blue, 95) : na, title="Sesion NY")
+// ─── 3 SESIONES (Plan Operativo actualizado, confirmado con Fabian
+// 01/09/2026) -- el motor de estructura M3 corre las 24hs SIN RESETEAR
+// (ver bloque de estructura mas abajo, no depende de sesion), estas 3
+// franjas solo habilitan/deshabilitan la APERTURA de operaciones nuevas.
+// Ajuste automatico de horario de verano via zona "America/New_York".
+grp_sesiones = "Sesiones (franjas horarias)"
+TRADE_PRENY = input.bool(true, "Habilitar entradas en Pre New York (07:00-09:00)", group=grp_sesiones)
+TRADE_NY    = input.bool(true, "Habilitar entradas en New York (09:02-11:00)", group=grp_sesiones)
+TRADE_ASIA  = input.bool(true, "Habilitar entradas en Asia (20:02-22:00)", group=grp_sesiones)
+
+sessPreNY = time(timeframe.period, "0700-0900", "America/New_York")
+sessNY    = time(timeframe.period, "0902-1100", "America/New_York")
+sessAsia  = time(timeframe.period, "2002-2200", "America/New_York")
+
+inSessionPreNY = TRADE_PRENY and not na(sessPreNY)
+inSessionNY    = TRADE_NY    and not na(sessNY)
+inSessionAsia  = TRADE_ASIA  and not na(sessAsia)
+inSession = inSessionPreNY or inSessionNY or inSessionAsia
+
+bgcolor(inSessionPreNY ? color.new(#42a5f5, 92) : na, title="Sesion Pre-NY")
+bgcolor(inSessionNY    ? color.new(#448aff, 90) : na, title="Sesion NY")
+bgcolor(inSessionAsia  ? color.new(#ab47bc, 90) : na, title="Sesion Asia")
 
 // ─── FUNCIONES BASE DE VELA ────────────────────────────────────────────────
 f_bodySize(o, c) => math.abs(c - o)
@@ -368,20 +386,20 @@ f_cerrarLineasTrade() =>
     if not na(lineTP)
         line.delete(lineTP)
 
-// 31/08/2026: vuelve al estilo de tag gris + nombre del modelo debajo
-// (ej. "MER SELL", "MEC ENV SELL"), a pedido de Diego con referencia a
-// una version anterior del script.
+// 01/09/2026: Opcion A confirmada por Diego -- triangulo chico pegado a la
+// vela + texto simple SIN caja de fondo (ej. "MER SELL", "MEC ENV SELL"),
+// como en su captura de referencia de una version anterior del script.
+// Reemplaza el tag gris con caja del 31/08/2026.
 f_dibujarEtiquetaDireccion(esCompra, textoModelo) =>
-    dirTxt   = esCompra ? "BUY" : "SELL"
-    styleLbl = esCompra ? label.style_label_up : label.style_label_down
-    offsetTag    = (high - low) * 2.4
-    offsetModelo = (high - low) * 0.9
-    yTag    = esCompra ? low - offsetTag    : high + offsetTag
-    yModelo = esCompra ? low - offsetModelo : high + offsetModelo
-    label.new(bar_index, yTag, dirTxt, color=color.new(color.gray, 10), textcolor=color.white,
-              style=styleLbl, size=size.tiny, text_font_family=font.family_default)
-    label.new(bar_index, yModelo, textoModelo, color=color.new(color.gray, 100), textcolor=color.white,
-              style=styleLbl, size=size.tiny, text_font_family=font.family_default)
+    triColor = esCompra ? color.new(#2962ff, 0) : color.new(#e040fb, 0)
+    triStyle = esCompra ? label.style_triangleup : label.style_triangledown
+    offsetTri = (high - low) * 0.3
+    offsetTxt = (high - low) * 0.9
+    yTri = esCompra ? low - offsetTri : high + offsetTri
+    yTxt = esCompra ? low - offsetTxt : high + offsetTxt
+    label.new(bar_index, yTri, "", color=triColor, style=triStyle, size=size.small)
+    label.new(bar_index, yTxt, textoModelo, color=color.new(color.black, 100), textcolor=color.white,
+              style=label.style_none, size=size.tiny, text_font_family=font.family_default)
 
 // ─── EJECUCION ─────────────────────────────────────────────────────────────
 if mecLong or merLong
