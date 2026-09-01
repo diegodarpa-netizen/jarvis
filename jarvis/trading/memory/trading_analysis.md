@@ -1175,3 +1175,75 @@ El SL y el TP se calculan **una sola vez, en la vela de entrada**, a partir del 
 
 **Pendiente para la sesión en vivo de esta semana:** aplicar el fix de niveles M3 dinámicos también a `XAU_Scalping_Strategy.pine` (no solo a `xau_v9.pine`), y decidir si ajustar `i_rr` por encima de 0.9.
 
+---
+
+### Sesión EN VIVO | 01/09/2026 16:02 UTC-4 — Comparativa código (izq/EstrategiaXAU) vs Fabian real (der) — Pre-NY 07:00-08:15
+
+**Chart izquierdo (código):** `diegodarpa`, TradingView, Gold Spot/USD OANDA M1,
+`EstrategiaXAU v3` recién actualizado con las 3 sesiones. Ventana visible
+07:00-08:15 NY (sesión Pre New York). Tabla: Total Trades 19, Win Rate
+52.6%, Wins/Losses 10/9, Net Profit 113.95, **SL hoy/TP hoy: 3/0**, R
+semana -3.1R.
+
+**Chart derecho (Fabian real):** `Fabiancarreroa`, TradingView, Gold
+Spot/USD OANDA M1, chart propio (sin nuestro indicador) con dibujos
+manuales (rectángulos gris/rosa de rango, línea diagonal de medición),
+ventana 06:15-09:15 NY. **No tiene un label explícito de BUY/SELL visible
+en la captura** — solo cajas de medición de rango, así que no puedo leer
+con certeza el minuto y la dirección exacta de su entrada real de las
+~08:00 solo de la imagen. Pendiente: pedirle a Diego/Fabian el horario y
+dirección exacta de esa entrada para poder chequearla puntualmente contra
+el código (igual que se hizo con las 191 operaciones históricas).
+
+#### Decisión de entrada — lo que hizo el código
+En los primeros ~15 minutos de la sesión Pre-NY (07:00-07:15) el código
+tomó varias entradas seguidas con flips de Hedge ("MEC ENV SELL", "MEC
+ENV BUY" x2, cierres "Cierre por Hedge" -1/-1) — luego **ninguna entrada
+más en toda la ventana 07:15-08:15**, a pesar de un Cambio de Estructura
+Bajista claro cerca de las 07:52 con una vela roja grande y continuación
+bajista fuerte hasta las 08:15 (justo la zona donde, según Diego, Fabian
+sí encontró una entrada real).
+
+#### CAUSA RAÍZ ENCONTRADA (no es un problema de reconocimiento de patrón)
+La tabla mostraba **SL hoy: 3**, pero `DAILY_MAX_SL = 2` (regla fija del
+Plan Operativo: 2 SL detiene el día) debería haber permitido como máximo
+2 antes de frenar el día. Revisando el código de tracking
+(`strategy.closedtrades`), el bug es que **un cierre por Hedge (flip de
+posición cuando aparece una señal contraria con posición abierta) se
+contaba igual que un SL real** si ese cierre daba en pérdida. Con varios
+flips de Hedge seguidos en los primeros minutos de Pre-NY (una sesión más
+"picada" que la ventana NY angosta que se calibró históricamente), el
+contador de "2 SL detiene el día" se gastó casi de entrada — silenciando
+el resto del día, incluida la zona de las ~08:00 donde Fabian entró.
+
+**Por qué la calibración histórica (182/191, 95,3%) nunca detectó esto:**
+el método de validación (`señales_del_dia()` en Python) nunca simuló
+posiciones abiertas, hedge ni el corte diario — solo evaluaba si el
+patrón se reconocía en cada vela, sin autonomía. El corte diario y la
+lógica de Hedge solo existen en el `.pine` real de estrategia, que recién
+se está probando en vivo por primera vez en esta Fase 2. Es un hallazgo
+nuevo, no una regresión de lo ya validado.
+
+**Fix aplicado (`EstrategiaXAU.pine`, 01/09/2026):** los cierres por
+Hedge ahora se excluyen del conteo de SL/TP del día
+(`str.contains(strategy.closedtrades.exit_comment(...), "Hedge")`) —
+antes de este fix, un flip de posición podía contar como si el precio
+hubiera tocado el stop loss real, que no es lo que dice el Plan
+Operativo.
+
+#### Otros cambios de estética aplicados en la misma sesión
+- Sacado el cartel de texto "CAMBIO DE ESTRUCTURA ALCISTA/BAJISTA"
+  (Diego: "veo mucho ruido") — se mantienen los colores de fondo en la
+  vela del ChoC, sin el texto.
+- Acortado el comentario de cierre por Hedge de "Cierre por Hedge" a
+  "Hedge" (sigue siendo necesario como texto interno para el fix de
+  arriba; para sacar TODOS los carteles automáticos de operaciones,
+  Diego puede desactivarlo desde la config de estilo del indicador en
+  TradingView, no es algo que dependa del código).
+
+#### Pendiente
+- Confirmar con Fabian el horario/dirección exacto de la entrada de las
+  ~08:00 para chequearla puntualmente (igual que el resto de las 191).
+- Volver a correr la sesión completa con el fix del contador aplicado y
+  ver si el código ahora sí opera en la zona 07:50-08:15.
+

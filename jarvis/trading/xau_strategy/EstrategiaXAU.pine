@@ -272,18 +272,12 @@ else if tendState == -1 and f_rompioAbajoMecha(bajoM3Level)
 
 // ─── MARCA DE CAMBIO DE ESTRUCTURA -- SOLO la vela del ChoC (31/08/2026,
 // reemplaza la franja de fondo por toda la tendencia: Diego pidio volver
-// al estilo de una version anterior, "marcaba la vela, me gusta") ────────
+// al estilo de una version anterior, "marcaba la vela, me gusta"). Cartel
+// de texto sacado el 01/09/2026 (mucho ruido visual) -- se dejan SOLO los
+// colores de fondo en la vela del ChoC, sin el label "CAMBIO DE
+// ESTRUCTURA ALCISTA/BAJISTA" ───────────────────────────────────────────
 bgcolor(SHOW_CHOC_MARK and chocAlcistaNuevo ? color.new(color.green, 55) : na, title="ChoC alcista (vela)")
 bgcolor(SHOW_CHOC_MARK and chocBajistaNuevo ? color.new(color.red, 55) : na, title="ChoC bajista (vela)")
-
-if SHOW_CHOC_MARK and chocAlcistaNuevo
-    label.new(bar_index, low - (high - low) * 1.5, "CAMBIO DE ESTRUCTURA ALCISTA",
-              style=label.style_label_up, color=color.new(color.green, 15),
-              textcolor=color.white, size=size.small)
-if SHOW_CHOC_MARK and chocBajistaNuevo
-    label.new(bar_index, high + (high - low) * 1.5, "CAMBIO DE ESTRUCTURA BAJISTA",
-              style=label.style_label_down, color=color.new(color.red, 15),
-              textcolor=color.white, size=size.small)
 
 // ─── MEC escenario b: Quiebre - Pullback - Continuacion (estado, en M1) ──
 var int   mecFaseAlcista = 0
@@ -411,7 +405,7 @@ if mecLong or merLong
     patron  = esEnvolventeAlcista ? (envTipoAlcista == 1 ? "Envolvente" : "Env. Martillo") : "START"
 
     if enPosicion and ALLOW_HEDGE
-        strategy.close_all(comment="Cierre por Hedge")
+        strategy.close_all(comment="Hedge")
     strategy.entry("LONG", strategy.long)
     strategy.exit("SL/TP L", "LONG", stop=slPrice, limit=tpPrice)
 
@@ -433,7 +427,7 @@ if mecShort or merShort
     patron  = esEnvolventeBajista ? (envTipoBajista == 1 ? "Envolvente" : "Env. Martillo") : "START"
 
     if enPosicion and ALLOW_HEDGE
-        strategy.close_all(comment="Cierre por Hedge")
+        strategy.close_all(comment="Hedge")
     strategy.entry("SHORT", strategy.short)
     strategy.exit("SL/TP S", "SHORT", stop=slPrice, limit=tpPrice)
 
@@ -456,14 +450,26 @@ if SHOW_TRADE_LINES and enPosicion
         line.set_x2(lineTP, bar_index)
 
 // ─── TRACKING de resultados para el limite diario / semanal ──────────────
+// FIX 01/09/2026: un cierre por Hedge (flip de posicion, no una vela que
+// toco el SL real) estaba contando como SL para la regla "2 SL detiene el
+// dia" -- en la sesion Pre-NY de hoy varios flips seguidos de Hedge
+// dispararon el corte del dia en los primeros minutos, silenciando el
+// resto de la sesion (incluida la zona donde Fabian encontro su entrada
+// real). Este bug no se detectaba antes porque la calibracion historica
+// (Python, señales_del_dia) nunca simulo posiciones ni el corte diario --
+// solo evaluaba si el patron se reconocia, sin abrir nada. Ahora se
+// excluyen los cierres por Hedge del conteo de SL/TP del dia.
 if strategy.closedtrades > 0 and strategy.closedtrades != strategy.closedtrades[1]
-    ultimoResultado = strategy.closedtrades.profit(strategy.closedtrades - 1)
-    if ultimoResultado < 0
-        slHoy   := slHoy + 1
-        weeklyR := weeklyR - 1.0
-    else if ultimoResultado > 0
-        tpHoy   := tpHoy + 1
-        weeklyR := weeklyR + RR
+    idxUltimo = strategy.closedtrades - 1
+    ultimoResultado = strategy.closedtrades.profit(idxUltimo)
+    esCierrePorHedge = str.contains(strategy.closedtrades.exit_comment(idxUltimo), "Hedge")
+    if not esCierrePorHedge
+        if ultimoResultado < 0
+            slHoy   := slHoy + 1
+            weeklyR := weeklyR - 1.0
+        else if ultimoResultado > 0
+            tpHoy   := tpHoy + 1
+            weeklyR := weeklyR + RR
 
 // ─── TABLA DE ESTADISTICAS ─────────────────────────────────────────────────
 var table statsTable = table.new(position.top_right, 2, 7,
