@@ -1,0 +1,6 @@
+escenario,capital_final,retorno_pct,drawdown_max_pct,peor_racha_3L_pct,riesgo_por_dia
+E0 -- 3% parejo (control),136362.97,13536.3,-13.1,-8.7,"{'Lunes': 0.03, 'Martes': 0.03, 'Miércoles': 0.03, 'Jueves': 0.03, 'Viernes': 0.03, 'Sábado': 0.03, 'Domingo': 0.03}"
+"E1 -- Miercoles 15%, resto 3% (ejemplo de Diego)",16760100.96,1675910.1,-52.0,-32.7,"{'Lunes': 0.03, 'Martes': 0.03, 'Miércoles': 0.15, 'Jueves': 0.03, 'Viernes': 0.03, 'Sábado': 0.03, 'Domingo': 0.03}"
+E2 -- Escalonado por patron empirico,513058690.93,51305769.1,-49.2,-33.0,"{'Lunes': 0.05, 'Martes': 0.08, 'Miércoles': 0.15, 'Jueves': 0.08, 'Viernes': 0.02, 'Sábado': 0.0, 'Domingo': 0.01}"
+"E3 -- Conservador (Miercoles 10%, resto 3%, floja 1%)",1816597.72,181559.8,-36.1,-22.7,"{'Lunes': 0.03, 'Martes': 0.03, 'Miércoles': 0.1, 'Jueves': 0.03, 'Viernes': 0.01, 'Sábado': 0.0, 'Domingo': 0.01}"
+E4 -- Medio-Kelly por dia (estadistico),151502431835595.47,15150243183459.5,-74.5,-52.8,"{'Lunes': np.float64(0.18110600545468047), 'Martes': np.float64(0.17999999999999997), 'Miércoles': np.float64(0.2458361962347121), 'Jueves': np.float64(0.18943181818181815), 'Viernes': np.float64(0.15358490566037733), 'Sábado': 0.0, 'Domingo': np.float64(0.07307692307692301)}"
