@@ -1,0 +1,4 @@
+perfil,capital_final,retorno_pct,drawdown_max_pct,peor_tramo_dias,peor_tramo_inicio,peor_tramo_fin
+"CONSERVADOR -- Gestión Híbrida, riesgo 3%",7150.91,615.1,-16.0,19,2026-05-13,2026-06-01
+MODERADO -- Riesgo parejo 3% (todos los días),136362.97,13536.3,-13.1,6,2026-07-22,2026-07-28
+AGRESIVO -- Riesgo parejo 5% (todos los días),2927636.64,292663.7,-21.3,6,2026-07-22,2026-07-28
