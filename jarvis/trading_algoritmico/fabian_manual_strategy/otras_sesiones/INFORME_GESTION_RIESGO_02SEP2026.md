@@ -62,6 +62,8 @@ Se agrupó cada día calendario (sumando el R de todas las operaciones de ese d�
 | Viernes | 30 | 63,3% | +16,3R | +0,543 |
 | Domingo (madrugada Asia) | 22 | 54,5% | +3,8R | +0,173 |
 
+![Heatmap de días positivos por sesión y día de semana](../../graficos/heatmap_dia_semana_sesion.png)
+
 **Miércoles se repite como el mejor día en las 3 sesiones evaluadas por separado** (NY 74,2%, Pre-NY 74,1%, Asia 83,3%) — la consistencia entre 3 muestras independientes es una señal más fuerte que cualquier test individual, aunque ningún test cruza formalmente p<0,05 con bootstrap (la muestra por día de semana, ~30-40 casos, es chica).
 
 **Kelly Criterion por día** (calculado a nivel de operación individual, no de día):
@@ -76,6 +78,8 @@ Se agrupó cada día calendario (sumando el R de todas las operaciones de ese d�
 | Domingo | 29 | 53,8% | 14,6% | 7,3% |
 
 Miércoles tiene el mejor Win Rate y el Kelly más alto de la semana — matemáticamente confirma el patrón encontrado por conteo simple.
+
+![Kelly Criterion por día de semana](../../graficos/kelly_por_dia.png)
 
 **Probabilidad de terminar en ganancia operando todos los Miércoles** (bootstrap por bloques de día, 5.000 universos simulados):
 
@@ -118,6 +122,8 @@ Con Miércoles fijado en 7% (drawdown <30%, peor día único <15% — el punto d
 | Mié3/Mar2/Jue1 | +1.869,6% | -11,1% | 100,0% | 0,0% |
 | Mié2/Mar1/Jue1 | +758,6% | -8,0% | 100,0% | 0,0% |
 | Mié1/Mar1/Jue1 (parejo, piso) | +437,0% | -4,5% | 100,0% | 0,0% |
+
+![Escalera de descenso -- retorno y drawdown por escalón](../../graficos/escalera_descenso_barras.png)
 
 ---
 
@@ -187,6 +193,10 @@ Para no elegir un nivel de riesgo en el vacío, se comparó contra literatura y 
 - **Kelly Criterion**: casi nadie lo usa completo en la práctica — el estándar profesional es medio-Kelly o cuarto-Kelly, que en la mayoría de estrategias reales cae en **2,5%-5%** ([QuantVPS](https://www.quantvps.com/blog/trading-risk-management)).
 
 **Traducción a nuestros números**: el rango "profesional agresivo" (2,5%-5%) equivale, en esta estrategia, a un drawdown real de -11% a -21,3%. Dentro de esa franja hay un quiebre claro: hasta 3% la probabilidad de romper -20% de drawdown es baja (8,4%); de 4% en adelante ya es una moneda al aire (41,7%) o peor. **3% parejo es donde "lo que hacen los profesionales agresivos" y "lo que dicen los datos reales de Fabian" coinciden**; 5% parejo es el techo defendible dentro de ese mismo marco — pasado eso, ninguna fuente seria lo respalda.
+
+![Distribución de drawdown -- bootstrap 3% vs 5% parejo](../../graficos/histograma_bootstrap_drawdown.png)
+
+Estos histogramas muestran el rango completo de resultados posibles (3.000 universos simulados por columna), no solo el peor caso puntual — a 3% la masa de la distribución está concentrada y lejos de -20%; a 5% la cola se estira mucho más hacia caídas profundas, aunque la mediana siga siendo manejable.
 
 ---
 
@@ -278,5 +288,6 @@ Todo lo de este informe es reproducible desde `jarvis/trading_algoritmico/fabian
 - `frontera_riesgo_retorno.py` / `frontera_v2_hibrida.py` — la frontera riesgo/retorno completa.
 - `perfiles_equity_drawdown.py` — curvas de capital y drawdown de los 3 perfiles.
 - `todos_los_drawdowns.py` — todos los episodios de drawdown, no solo el peor.
+- `graficos_adicionales_informe.py` — heatmap de día de semana, histograma de bootstrap, barras de Kelly y de la escalera de descenso.
 
 Todos los CSVs de resultados están en la misma carpeta, con el mismo nombre que el script que los genera + `_resumen.csv` o `_tabla.csv`.
