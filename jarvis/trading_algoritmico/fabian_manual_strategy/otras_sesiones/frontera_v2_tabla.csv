@@ -1,0 +1,8 @@
+tipo,etiqueta,capital_final,retorno_pct,drawdown_pct,peor_racha_pct,peor_dia_pct,p_dd_peor_20,p_dd_peor_30
+Base3+Mié,Base3/Mié3,136362.97,13536.3,-13.1,-8.7,-7.9,8.4,0.1
+Base3+Mié,Base3/Mié4,213977.35,21297.7,-15.1,-10.3,-8.0,10.9,0.1
+Base3+Mié,Base3/Mié5,332684.18,33168.4,-19.1,-12.2,-10.0,18.3,0.3
+Híbrida,Híbrida 3%,7150.91,615.1,-16.0,,,0.5,0.0
+Híbrida,Híbrida 5%,24719.2,2371.9,-25.9,,,19.7,1.0
+Parejo,3% parejo,136362.97,13536.3,-13.1,,,8.0,0.1
+Parejo,5% parejo,2927636.64,292663.7,-21.3,,,79.6,11.4
