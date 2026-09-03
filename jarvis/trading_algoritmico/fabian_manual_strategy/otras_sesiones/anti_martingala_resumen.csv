@@ -1,0 +1,5 @@
+perfil,capital_final,retorno_pct,drawdown_pct,p_positivo_bootstrap,dd_mediana_bootstrap,dd_p5_bootstrap
+Conservador,7253.09,625.3,-7.6,100.0,-7.3,-10.0
+Moderado,45360.13,4436.0,-15.1,100.0,-14.6,-19.8
+Arriesgado,1145695.39,114469.5,-30.0,100.0,-28.8,-38.3
+Muy arriesgado,125003016.8,12500201.7,-57.2,100.0,-55.5,-69.5

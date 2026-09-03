@@ -1,0 +1,32 @@
+perfil,nivel,riesgo_pct,prob_llegar_pct,capital_restante_pct
+Conservador,1,0.25,100.0,99.8
+Conservador,2,0.5,100.0,99.3
+Conservador,3,1.0,100.0,98.5
+Conservador,4,2.0,96.22,96.7
+Conservador,5,4.0,63.88,93.3
+Conservador,6,8.0,26.9,86.7
+Conservador,7,16.0,9.46,74.5
+Conservador,8,32.0,3.32,53.5
+Moderado,1,0.5,100.0,99.6
+Moderado,2,1.0,100.0,98.7
+Moderado,3,2.0,100.0,96.9
+Moderado,4,4.0,96.22,93.5
+Moderado,5,8.0,63.88,86.9
+Moderado,6,16.0,26.9,74.7
+Moderado,7,32.0,9.46,53.6
+Moderado,8,64.0,3.32,23.4
+Arriesgado,1,1.0,100.0,99.1
+Arriesgado,2,2.0,100.0,97.4
+Arriesgado,3,4.0,100.0,93.9
+Arriesgado,4,8.0,96.22,87.3
+Arriesgado,5,16.0,63.88,75.0
+Arriesgado,6,32.0,26.9,53.8
+Arriesgado,7,64.0,9.46,23.5
+Arriesgado,8,128.0,3.32,0.0
+Muy arriesgado,1,2.0,100.0,98.2
+Muy arriesgado,2,4.0,100.0,94.8
+Muy arriesgado,3,8.0,100.0,88.1
+Muy arriesgado,4,16.0,96.22,75.7
+Muy arriesgado,5,32.0,63.88,54.3
+Muy arriesgado,6,64.0,26.9,23.7
+Muy arriesgado,7,128.0,9.46,0.0
