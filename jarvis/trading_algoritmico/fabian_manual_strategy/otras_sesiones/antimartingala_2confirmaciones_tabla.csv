@@ -1,0 +1,16 @@
+base_pct,enfoque,capital_final,retorno_pct,drawdown_pct,p_positivo_bootstrap,dd_peor5_bootstrap
+1,Parejo,5370.39,437.0,-4.5,,
+1,Anti-Mart. clásico (x2),1145695.39,114469.5,-30.0,,
+1,Anti-Mart. 2conf (+1%/nivel),25390.71,2439.1,-8.8,100.0,-12.5
+2,Parejo,27639.11,2663.9,-8.9,,
+2,Anti-Mart. clásico (x2),125003016.8,12500201.7,-57.2,,
+2,Anti-Mart. 2conf (+1%/nivel),125357.58,12435.8,-12.7,100.0,-18.9
+3,Parejo,136362.97,13536.3,-13.1,,
+3,Anti-Mart. clásico (x2),1003790002.34,100378900.2,-80.3,,
+3,Anti-Mart. 2conf (+1%/nivel),593465.13,59246.5,-16.7,100.0,-25.4
+4,Parejo,645140.01,64414.0,-17.3,,
+4,Anti-Mart. clásico (x2),241972303.47,24197130.3,-96.2,,
+4,Anti-Mart. 2conf (+1%/nivel),2694817.2,269381.7,-20.7,100.0,-31.8
+5,Parejo,2927636.64,292663.7,-21.3,,
+5,Anti-Mart. clásico (x2),99361.95,9836.2,-99.9,,
+5,Anti-Mart. 2conf (+1%/nivel),11739866.46,1173886.6,-24.6,100.0,-37.7
