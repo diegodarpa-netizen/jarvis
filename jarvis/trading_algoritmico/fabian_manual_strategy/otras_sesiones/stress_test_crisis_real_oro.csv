@@ -1,0 +1,13 @@
+config,longitud_racha,ret_mediana,dd_mediana,dd_peor5,p_positivo
+Base 3% / incremento 2%,5,111857.6,-25.7,-35.1,100.0
+Base 3% / incremento 2%,6,118336.0,-26.7,-37.8,100.0
+Base 3% / incremento 2%,7,121662.3,-27.4,-37.4,100.0
+Base 3% / incremento 2%,8,129182.4,-28.7,-38.3,100.0
+Base 4% / incremento 2%,5,453367.6,-30.4,-41.0,100.0
+Base 4% / incremento 2%,6,477151.3,-31.8,-43.8,100.0
+Base 4% / incremento 2%,7,482180.5,-32.8,-44.3,100.0
+Base 4% / incremento 2%,8,491746.5,-34.7,-44.5,100.0
+Base 5% / incremento 3%,5,4280138.6,-39.0,-53.5,100.0
+Base 5% / incremento 3%,6,4855117.1,-40.4,-55.6,100.0
+Base 5% / incremento 3%,7,4962077.8,-41.6,-55.2,100.0
+Base 5% / incremento 3%,8,5284918.1,-43.2,-56.1,100.0
