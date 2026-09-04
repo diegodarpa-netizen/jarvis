@@ -1,0 +1,26 @@
+base_pct,esquema,capital_final,retorno_pct,drawdown_pct
+1,Parejo,1954.51,95.5,-5.5
+1,Martingala (tope),2842.32,184.2,-6.8
+1,Anti-Martingala clásico,39649.06,3864.9,-23.6
+1,1 confirmación (+1%),6218.37,521.8,-13.6
+1,2 confirmaciones (+1%),4472.72,347.3,-9.3
+2,Parejo,3765.36,276.5,-10.9
+2,Martingala (tope),7717.78,671.8,-13.3
+2,Anti-Martingala clásico,580605.07,57960.5,-43.9
+2,1 confirmación (+1%),11689.7,1069.0,-18.5
+2,2 confirmaciones (+1%),8467.19,746.7,-14.5
+3,Parejo,7150.91,615.1,-16.0
+3,Martingala (tope),20061.64,1906.2,-19.5
+3,Anti-Martingala clásico,2956276.58,295527.7,-61.2
+3,1 confirmación (+1%),21667.33,2066.7,-23.3
+3,2 confirmaciones (+1%),15803.62,1480.4,-19.5
+4,Parejo,13389.21,1238.9,-21.0
+4,Martingala (tope),50006.49,4900.6,-25.5
+4,Anti-Martingala clásico,3873848.96,387284.9,-79.3
+4,1 confirmación (+1%),39603.02,3860.3,-28.0
+4,2 confirmaciones (+1%),29085.15,2808.5,-24.3
+5,Parejo,24719.2,2371.9,-25.9
+5,Martingala (tope),119688.56,11868.9,-31.2
+5,Anti-Martingala clásico,477741.85,47674.2,-95.1
+5,1 confirmación (+1%),71386.2,7038.6,-32.4
+5,2 confirmaciones (+1%),52787.03,5178.7,-29.0
