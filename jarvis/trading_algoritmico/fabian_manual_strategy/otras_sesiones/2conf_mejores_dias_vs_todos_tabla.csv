@@ -1,0 +1,11 @@
+base_pct,universo,n_ops,capital_final,retorno_pct,drawdown_pct,p_positivo_bootstrap
+1,Todos los días,482,25390.71,2439.1,-8.8,100.0
+1,Solo Mar/Mié/Jue,306,9907.97,890.8,-9.0,100.0
+2,Todos los días,482,125357.58,12435.8,-12.7,100.0
+2,Solo Mar/Mié/Jue,306,30757.35,2975.7,-11.1,100.0
+3,Todos los días,482,593465.13,59246.5,-16.7,100.0
+3,Solo Mar/Mié/Jue,306,92924.83,9192.5,-13.3,100.0
+4,Todos los días,482,2694817.2,269381.7,-20.7,100.0
+4,Solo Mar/Mié/Jue,306,273287.36,27228.7,-16.5,100.0
+5,Todos los días,482,11739866.46,1173886.6,-24.6,100.0
+5,Solo Mar/Mié/Jue,306,782513.14,78151.3,-19.8,100.0
