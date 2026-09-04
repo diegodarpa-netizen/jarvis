@@ -1,0 +1,16 @@
+k_rachas_3,metodo,retorno_mediana_pct,dd_mediana_pct,dd_peor5_pct,p_positivo
+9,parejo,5243.9,-20.0,-30.2,100.0
+9,martingala,16303.9,-83.5,-97.9,98.3
+9,antimartingala,14999324.4,-79.7,-91.2,100.0
+15,parejo,2365.0,-23.2,-35.9,100.0
+15,martingala,1641.7,-91.0,-99.5,82.7
+15,antimartingala,1240014.3,-83.7,-95.5,98.3
+20,parejo,1411.2,-26.5,-37.8,100.0
+20,martingala,275.8,-95.3,-99.7,63.7
+20,antimartingala,402449.6,-85.2,-95.6,98.3
+30,parejo,393.7,-34.5,-51.2,99.3
+30,martingala,-92.8,-99.3,-100.0,22.3
+30,antimartingala,8599.9,-90.3,-98.2,91.0
+40,parejo,58.7,-47.3,-67.6,82.7
+40,martingala,-99.9,-100.0,-100.0,3.7
+40,antimartingala,497.0,-94.0,-99.3,74.7
