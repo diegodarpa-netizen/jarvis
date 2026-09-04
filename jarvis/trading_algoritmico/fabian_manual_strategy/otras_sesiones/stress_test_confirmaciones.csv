@@ -1,0 +1,16 @@
+k_rachas_3,metodo,retorno_mediana_pct,dd_mediana_pct,dd_peor5_pct,p_positivo
+9,parejo,4906.6,-21.5,-31.9,100.0
+9,2 confirmaciones,15950.0,-23.8,-34.1,100.0
+9,3 confirmaciones,10009.0,-22.7,-33.3,100.0
+15,parejo,2370.8,-23.8,-36.8,100.0
+15,2 confirmaciones,6365.9,-26.9,-41.3,100.0
+15,3 confirmaciones,4260.4,-25.7,-38.7,100.0
+20,parejo,1334.1,-26.5,-37.3,100.0
+20,2 confirmaciones,3317.2,-29.2,-41.3,100.0
+20,3 confirmaciones,2305.4,-28.2,-39.2,100.0
+30,parejo,400.8,-34.6,-49.0,100.0
+30,2 confirmaciones,876.1,-37.9,-51.2,100.0
+30,3 confirmaciones,640.3,-36.5,-50.2,100.0
+40,parejo,63.8,-46.6,-66.2,83.3
+40,2 confirmaciones,149.6,-49.6,-68.8,92.3
+40,3 confirmaciones,99.4,-48.6,-66.6,87.7
